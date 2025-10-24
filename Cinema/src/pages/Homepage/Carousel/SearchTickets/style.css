@@ -1,0 +1,93 @@
+.form-search .makeStyles-search-21 {
+  height: 60px;
+  max-width: 1100px;
+  background-color: #ee823b;
+}
+
+.form-search .makeStyles-textField-363>label {
+  font-weight: bold;
+  color: white;
+}
+
+.form-search .MuiSelect-root,
+.form-search .MuiButtonBase-root {
+  background-color: #ee823b;
+  font-weight: bold;
+  color: white;
+}
+
+.form-search .MuiInputLabel-root,
+.form-search .MuiInputBase-input {
+  font-weight: bold;
+  color: white;
+}
+
+.form-search .MuiSvgIcon-root {
+  color: white;
+}
+
+/*# sourceMappingURL=style.css.map */
+
+.movie-list-container {
+  margin: 40px auto;
+  max-width: 1200px;
+  text-align: center;
+}
+
+.movie-list-title {
+  font-size: 24px;
+  font-weight: bold;
+  margin-bottom: 20px;
+}
+
+.movie-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 24px;
+}
+
+.movie-card {
+  width: 180px;
+  background: #fff;
+  border-radius: 8px;
+  overflow: hidden;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  cursor: pointer;
+  transition: transform 0.3s ease;
+}
+
+.movie-card:hover {
+  transform: translateY(-5px);
+}
+
+.movie-poster {
+  width: 100%;
+  height: 260px;
+  object-fit: cover;
+}
+
+.movie-info {
+  padding: 10px;
+}
+
+.movie-title {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 0;
+  color: #333;
+}
+
+.movie-date {
+  font-size: 13px;
+  color: #888;
+  margin: 4px 0 6px;
+}
+
+.btn-buy {
+  background-color: #f26b38 !important;
+  color: #fff !important;
+  font-weight: 600 !important;
+  width: 100%;
+  text-transform: none !important;
+}

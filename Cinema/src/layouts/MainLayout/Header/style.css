@@ -1,0 +1,83 @@
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: fixed;
+  width: 100%;
+  background-color: #091422bd;
+  z-index: 9999;
+  color: aliceblue;
+  padding: 10px 100px;
+
+}
+
+.btn-up {
+  border: 1px dotted aliceblue;
+  margin: 0 5px;
+  border-radius: 5px;
+  cursor: pointer;
+}
+
+.menu-item {
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.menu-item span {
+  padding: 0 10px;
+}
+
+.flexAl {
+  display: flex;
+  align-items: center;
+}
+
+.flexAl li {
+  padding: 0 10px;
+}
+
+.navbar {
+  border-bottom: 1px solid #ff6a00;
+  /* màu cam, có thể đổi */
+}
+
+/* Ẩn khối mobile ở desktop, bắt buộc */
+.navbar .collapse.d-lg-none {
+  display: none !important;
+}
+
+@media (max-width: 991.98px) {
+  .navbar .collapse.d-lg-none {
+    display: none;
+  }
+
+  .navbar .collapse.d-lg-none.show {
+    display: block;
+  }
+}
+
+/* Canh giữa đẹp hơn một chút */
+.navbar-nav .nav-link {
+  padding-left: .75rem;
+  padding-right: .75rem;
+}
+
+
+.navbar .collapse.d-lg-none {
+  display: none !important;
+}
+
+.navbar .collapse.d-lg-none {
+  display: none;
+  visibility: hidden;
+  opacity: 0;
+  transform: translateY(-10px);
+  transition: all 0.3s ease;
+}
+
+.navbar .collapse.d-lg-none.show {
+  display: block !important;
+  visibility: visible;
+  opacity: 1;
+  transform: translateY(0);
+}

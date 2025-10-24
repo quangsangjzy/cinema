@@ -1,0 +1,104 @@
+import React, { useEffect, useState } from "react";
+import Slider from "react-slick";
+import ArrowBackIosRoundedIcon from "@material-ui/icons/ArrowBackIosRounded";
+import ArrowForwardIosRoundedIcon from "@material-ui/icons/ArrowForwardIosRounded";
+import { useHistory } from "react-router-dom";
+import useMediaQuery from "@material-ui/core/useMediaQuery";
+import { useTheme } from "@material-ui/core/styles";
+import { useDispatch } from "react-redux";
+import SearchStickets from "./SearchTickets";
+import useStyles from "./styles";
+import { LOADING_BACKTO_HOME_COMPLETED } from "../../../reducers/constants/Lazy";
+import "slick-carousel/slick/slick.css";
+import "slick-carousel/slick/slick-theme.css";
+import "./carousel.css";
+import axios from "axios";
+
+
+export default function Carousel() {
+  const [banner, setBanner] = useState([]);
+  const dispatch = useDispatch();
+  const theme = useTheme();
+  const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
+  const history = useHistory();
+  const classes = useStyles();
+
+  const settings = {
+    dots: true,
+    infinite: true,
+    autoplaySpeed: 4000,
+    autoplay: true,
+    speed: 400,
+    swipeToSlide: true,
+    nextArrow: <NextArrow />,
+    prevArrow: <PrevArrow />,
+    dotsClass: "slickdotsbanner",
+  };
+
+  const getFilmBanner = async () => {
+    try {
+      const res = await axios.get("http://localhost:4000/api/QuanLyPhim/LayDanhSachPhim");
+      const list = res.data || [];
+      setBanner(list); // ✅ gán vào state, không gọi lại chính hàm
+      console.log("✅ Danh sách phim lấy được:", list);
+    } catch (err) {
+      console.error("❌ Lỗi khi load phim:", err);
+    }
+  };
+
+
+  useEffect(() => {
+    dispatch({ type: LOADING_BACKTO_HOME_COMPLETED });
+    getFilmBanner();
+  }, []);
+
+  function NextArrow(props) {
+    const { onClick } = props;
+    return (
+      <ArrowForwardIosRoundedIcon
+        style={{ right: "15px" }}
+        onClick={onClick}
+        className={classes.Arrow}
+      />
+    );
+  }
+
+  function PrevArrow(props) {
+    const { onClick } = props;
+    return (
+      <ArrowBackIosRoundedIcon
+        style={{ left: "15px" }}
+        onClick={onClick}
+        className={classes.Arrow}
+      />
+    );
+  }
+
+  return (
+    <section id="carousel">
+      <Slider {...settings}>
+        {banner.map((item, index) => (
+          <div key={index}>
+            <div
+              className="carousel-item"
+              style={{
+                backgroundImage: `url(${item.hinhAnh})`,
+                backgroundSize: "cover",
+                backgroundPosition: "center",
+                height: "100vh",
+                position: "relative",
+              }}
+            >
+            </div>
+          </div>
+        ))}
+      </Slider>
+
+
+      {/* ✅ Form tìm kiếm phim giữ nguyên */}
+      <div className="form-search responsive">
+        <SearchStickets />
+      </div>
+    </section>
+  );
+}
