@@ -9,6 +9,7 @@ import Theaters from "./Theaters";
 import Showtime from "./Showtime";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
+import CumRapList from "./CumRapList";
 
 export default function Homepage() {
   const dispatch = useDispatch();
@@ -27,8 +28,9 @@ export default function Homepage() {
   return (
     <div>
       <Carousel />
-      <Showtime />
-      <Theaters />
+      {/* <Showtime />
+      <Theaters /> */}
+      <CumRapList />
     </div>
   );
 }

@@ -8,6 +8,7 @@
   z-index: 9999;
   color: aliceblue;
   padding: 10px 100px;
+  position: fixed;
 
 }
 
@@ -38,6 +39,9 @@
 
 .navbar {
   border-bottom: 1px solid #ff6a00;
+  position: fixed !important;
+  z-index: 10;
+  width: 100%;
   /* màu cam, có thể đổi */
 }
 

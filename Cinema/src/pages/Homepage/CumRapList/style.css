@@ -1,0 +1,102 @@
+.cumrap-container {
+    max-width: 1200px;
+    margin: 80px auto;
+    text-align: center;
+}
+
+.cumrap-title {
+    font-size: 26px;
+    font-weight: bold;
+    color: #fff;
+    margin-bottom: 30px;
+}
+
+.system-name {
+    color: #f26b38;
+    margin: 20px 0 10px;
+    text-align: left;
+    font-size: 20px;
+}
+
+.cumrap-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 25px;
+    margin-bottom: 40px;
+}
+
+.cumrap-card {
+    background-color: #fff;
+    border-radius: 10px;
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+    padding: 15px;
+    transition: transform 0.3s;
+}
+
+.cumrap-card:hover {
+    transform: translateY(-5px);
+}
+
+.cumrap-image {
+    width: 100%;
+    height: 160px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 10px;
+}
+
+.cumrap-name {
+    font-weight: 600;
+    font-size: 16px;
+    margin: 10px 0;
+}
+
+.cumrap-buttons {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+}
+
+.cumrap-address {
+  color: #777;
+  font-size: 13px;
+  margin-bottom: 8px;
+}
+
+.phim-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 10px;
+}
+
+.phim-thumb {
+  width: 80px;
+  height: 110px;
+  object-fit: cover;
+  border-radius: 5px;
+}
+
+.giochieu-container {
+  margin-top: 6px;
+  display: flex;
+  flex-wrap: wrap;
+}
+
+.map-container {
+  border-radius: 8px;
+  overflow: hidden;
+  margin-top: 10px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+ul {
+  text-align: left;
+  padding-left: 20px;
+  color: #333;
+}
+
+ul li {
+  margin-bottom: 6px;
+}

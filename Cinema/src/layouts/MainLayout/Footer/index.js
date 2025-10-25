@@ -1,91 +1,93 @@
-import React from 'react'
-import useStyles from './style'
+import React from "react";
+import useStyles from "./style";
+import { Facebook, Instagram, YouTube, MusicNote } from "@material-ui/icons";
+
 export default function Footer() {
-  const classes = useStyles()
+  const classes = useStyles();
+
   return (
-    <div className={classes.footer}>
-      <div className={`${classes.footer__up} row`}>
-        <div className="col-6 col-md-4">
-          <div className={classes.tix__text}>
-            <div className="d-none d-lg-block d-xl-block">
-              <p>TIX</p>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/">FAQ</a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/">Brand Guidelines</a>
-            </div>
-            <div className="row">
-              <a className="col-6 col-lg-12" target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/">Thỏa thuận sử dụng</a>
-              <a className="col-6 col-lg-12" target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/">Chính sách bảo mật</a>
+    <footer className={classes.footer}>
+      {/* ----- TOP SECTION ----- */}
+      <div className={classes.footerInner}>
+        <div className={classes.footerTop}>
+          <div className={classes.footerColumn}>
+            <h4 className="text-white">VỀ BHD STAR</h4>
+            <div className={classes.line}></div>
+            <ul>
+              <li>Hệ thống rạp</li>
+              <li>Cụm rạp</li>
+              <li>Liên hệ</li>
+            </ul>
+            <img
+              src="/img/media/certificate.png"
+              alt="Bộ Công Thương"
+              className={classes.logoVerify}
+            />
+          </div>
+
+          <div className={classes.footerColumn}>
+            <h4 className="text-white">QUY ĐỊNH & ĐIỀU KHOẢN</h4>
+            <div className={classes.line}></div>
+            <ul>
+              <li>Quy định thành viên</li>
+              <li>Điều khoản</li>
+              <li>Hướng dẫn đặt vé trực tuyến</li>
+              <li>Quy định và chính sách chung</li>
+              <li>
+                Chính sách bảo vệ thông tin cá nhân của người tiêu dùng
+              </li>
+            </ul>
+          </div>
+
+          <div className={classes.footerColumn}>
+            <h4 className="text-white">CHĂM SÓC KHÁCH HÀNG</h4>
+            <div className={classes.line}></div>
+            <p>
+              <strong>Hotline:</strong> 19002099
+            </p>
+            <p>
+              <strong>Giờ làm việc:</strong> 9:00 – 22:00 (Tất cả các ngày bao
+              gồm cả Lễ, Tết)
+            </p>
+            <p>
+              <strong>Email hỗ trợ:</strong> cskh@cinema.vn
+            </p>
+            <p className={classes.socialLabel}>MẠNG XÃ HỘI</p>
+            <div className={classes.socialIcons}>
+              <Facebook />
+              <Instagram />
+              <MusicNote />
+              <YouTube />
             </div>
           </div>
         </div>
-        <div className="col-6 col-md-4 footer__company d-none d-lg-block d-xl-block">
-          <p>Đối tác</p>
-          <div>
-            <div className={classes.company__logo}>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/cgv.png" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/bhd.png" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/galaxycine.png" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/cinestar.png" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/lotte.png" alt="" className={classes.logo} /></a>
-            </div>
-            <div className={classes.company__logo}>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/megags.png" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/bt.jpg" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/dongdacinema.png" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/TOUCH.png" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/cnx.jpg" alt="" className={classes.logo} /></a>
-            </div>
-            <div className={classes.company__logo}>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/STARLIGHT.png" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/dcine.png" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/zalopay_icon.png" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/payoo.jpg" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/vcb.png" alt="" className={classes.logo} /></a>
-            </div>
-            <div className={classes.company__logo}>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/AGRIBANK.png" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/VIETTINBANK.png" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/IVB.png" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/123go.png" alt="" className={classes.logo} /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img src="/img/logo-connect/laban.png" alt="" className={classes.logo} /></a>
-            </div>
-          </div>
-        </div>
-        <div className="col-6 col-md-4 d-flex text-center">
-          <div className={`${classes.social__width} d-none d-lg-block d-xl-block`}>
-            <p className="pb-2">MOBIL APP</p>
-            <div className="footer__mobile d-flex justify-content-around">
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img className={classes.logo} src="/img/mobile-system/apple-logo.png" alt="" /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img className={classes.logo} src="/img/mobile-system/android-logo.png" alt="" /></a>
-            </div>
-          </div>
-          <div className={classes.social__width}>
-            <p className="d-none d-lg-block d-xl-block pb-2">SOCIAL APP</p>
-            <div className={classes.footer__social}>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img className={classes.logo} src="/img/media/facebook-logo.png" alt="" /></a>
-              <a target="_blank" rel="noopener noreferrer" href="https://www.cgv.vn/"><img className={classes.logo} src="/img/media/zalo-logo.png" alt="" /></a>
-            </div>
+
+        {/* ----- BOTTOM SECTION ----- */}
+        <div className={classes.footerBottom}>
+          <img
+            src="/img/logo.png"
+            alt="logo"
+            className={classes.logoBottom}
+          />
+          <div className={classes.companyInfo}>
+            <p>
+              <strong>Công ty TNHH MTV Cinema Việt Nam</strong>
+            </p>
+            <p>
+              <strong>Giấy CNĐKDN:</strong> 0104597158. Đăng ký lần đầu ngày 15
+              tháng 04 năm 2010
+            </p>
+            <p>
+              <strong>Địa chỉ:</strong> Tầng 11, Tòa nhà Hồng Hà Building, Lý
+              Thường Kiệt, Quận Hoàn Kiếm, Hà Nội
+            </p>
+            <p>
+              <strong>Hotline:</strong> 19002099
+            </p>
+            <p>COPYRIGHT 2010 Cinema Viet Nam. ALL RIGHTS RESERVED</p>
           </div>
         </div>
       </div>
-      <div className={`${classes.footer__down} container`}>
-        <div className="row">
-          <div className="col-12 col-md-1 p-1 text-center">
-            <img src="/img/logo-connect/zion-logo.jpg" alt="company" className={classes.logoCompany} />
-          </div>
-          <div className={`col-12 col-md-9 p-1 text-center text-lg-left`}>
-            <span>TIX - SẢN PHẨM CỦA CÔNG TY CỔ PHẦN ZION</span>
-            <span>Địa chỉ: Z06 Đường số 13, Phường Tân Thuận Đông, Quận 7, Tp. Hồ Chí Minh, Việt Nam.</span>
-            <span>Giấy chứng nhận đăng ký kinh doanh số: 0101659783,</span>
-            <span>đăng ký thay đổi lần thứ 30, ngày 22 tháng 01 năm 2020 do Sở kế hoạch và đầu tư Thành phố Hồ Chí Minh cấp.</span>
-            <span>Số Điện Thoại (Hotline): 1900 545 436</span>
-            <p>Email: <span className="d-inline">support@tix.vn</span></p>
-          </div>
-          <div className="col-12 col-md-2 p-1 text-center" style={{ position: "static" }}>
-            <img src="/img/media/certificate.png" alt="gvm" className={classes.gvm} />
-          </div>
-        </div >
-      </div >
-    </div >
-  )
+    </footer>
+  );
 }
