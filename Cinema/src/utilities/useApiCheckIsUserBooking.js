@@ -2,13 +2,14 @@
 import { useEffect, useState } from 'react'
 import Axios from "axios";
 import PropTypes from 'prop-types';
+import { BASE_URL } from "../../src/constants/config";
 
 CheckIsUserBookTicket.propTypes = {
     taiKhoan: PropTypes.string.isRequired,
 };
 export default function CheckIsUserBookTicket(taiKhoan) {
     const [isUserBookTicket, setisUserBookTicket] = useState(true)
-    const url = "http://localhost:4000/api/QuanLyNguoiDung/ThongTinTaiKhoan"
+    const url = `${BASE_URL}/QuanLyNguoiDung/ThongTinTaiKhoan`
     useEffect(() => {
         let cancel = Axios.CancelToken.source();
         const loadData = async () => {

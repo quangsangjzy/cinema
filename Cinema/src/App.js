@@ -28,6 +28,11 @@ import Register from "./pages/Register";
 import Page404 from "./pages/Page404";
 import EditShowTime from "./pages/CreateShowtime/EditShowTime";
 import Invoice from "./pages/TicketManagement/invoice";
+import Showtimes from "./pages/ShowTimes";
+import Member from "./pages/Member"
+import Newspage from "./pages/Newspage"
+import Aboutus from "./pages/AboutUs"
+
 function App() {
     return (
         <BrowserRouter>
@@ -35,10 +40,14 @@ function App() {
             <ModalTrailer />
             <Suspense fallback={<LazyLoad />}>
                 <Switch>
-                    <Route exact path={["/", "/detail/:maPhim", "/taikhoan"]}>
+                    <Route exact path={["/", "/detail/:maPhim", "/taikhoan", "/lichchieu", "/thanhvien", "/tintuc", "/vechungtoi"]}>
                         <MainLayout>
                             <Route exact path="/" component={Homepage} />
                             <Route exact path="/detail/:maPhim" component={MovieDetail} />
+                            <Route exact path="/lichchieu" component={Showtimes} />
+                            <Route exact path="/thanhvien" component={Member} />
+                            <Route exact path="/tintuc" component={Newspage} />
+                            <Route exact path="/vechungtoi" component={Aboutus} />
                             <UserProfileRoute
                                 exact
                                 path="/taikhoan"
@@ -46,6 +55,7 @@ function App() {
                             />
                         </MainLayout>
                     </Route>
+
 
                     <CheckoutRoute
                         exact

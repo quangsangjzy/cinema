@@ -9,10 +9,10 @@ import { getTheaters } from "../../../reducers/actions/Theater";
 import "./style.css";
 
 const headMenu = [
-    { nameLink: "Lịch chiếu", id: "lichchieu" },
-    { nameLink: "Cụm rạp", id: "cumrap" },
-    { nameLink: "Tin tức", id: "tintuc" },
-    { nameLink: "Ứng dụng", id: "ungdung" },
+    { nameLink: "LỊCH CHIẾU", id: "lichchieu" },
+    { nameLink: "THÀNH VIÊN", id: "thanhvien" },
+    { nameLink: "TIN TỨC", id: "tintuc" },
+    { nameLink: "VỀ CHÚNG TÔI", id: "vechungtoi" },
 ];
 
 export default function Header() {
@@ -69,6 +69,29 @@ export default function Header() {
 
     const handleClickLink = (id) => {
         setOpenDrawer(false);
+
+        // 🟢 Nếu click vào "LỊCH CHIẾU" thì điều hướng sang /lichchieu
+        if (id === "lichchieu") {
+            history.push("/lichchieu");
+            return;
+        }
+
+        if (id === "thanhvien") {
+            history.push("/thanhvien");
+            return;
+        }
+
+        if (id === "tintuc") {
+            history.push("/tintuc");
+            return;
+        }
+
+        if (id === "vechungtoi") {
+            history.push("/vechungtoi");
+            return;
+        }
+
+        // Còn lại (thành viên, tin tức, về chúng tôi) thì vẫn scroll như cũ
         if (location.pathname === "/") {
             scroller.scrollTo(id, {
                 duration: 800,
@@ -81,6 +104,7 @@ export default function Header() {
             }, 50);
         }
     };
+
 
     const handleUser = () => {
         history.push("/taikhoan");
@@ -123,7 +147,7 @@ export default function Header() {
                     <ul className="navbar-nav">
                         {headMenu.map((link) => (
                             <li className="nav-item px-2" key={link.id}>
-                                <a className="nav-link btn text" onClick={() => handleClickLink(link.id)}>
+                                <a className="nav-link btn text font-weight-bold" onClick={() => handleClickLink(link.id)}>
                                     {link.nameLink}
                                 </a>
                             </li>

@@ -13,6 +13,7 @@ import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import "./carousel.css";
 import axios from "axios";
+import {BASE_URL} from '../../../constants/config'
 
 
 export default function Carousel() {
@@ -37,7 +38,7 @@ export default function Carousel() {
 
   const getFilmBanner = async () => {
     try {
-      const res = await axios.get("http://localhost:4000/api/QuanLyPhim/LayDanhSachPhim");
+      const res = await axios.get(`${BASE_URL}/QuanLyPhim/LayDanhSachPhim`);
       const list = res.data || [];
       setBanner(list); // ✅ gán vào state, không gọi lại chính hàm
       console.log("✅ Danh sách phim lấy được:", list);

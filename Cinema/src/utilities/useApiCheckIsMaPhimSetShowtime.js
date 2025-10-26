@@ -2,13 +2,14 @@
 import { useEffect, useState } from 'react'
 import Axios from "axios";
 import PropTypes from 'prop-types';
+import { BASE_URL } from "../../src/constants/config";
 
 CheckIsMaPhimSetShowtime.propTypes = {
     maPhim: PropTypes.number.isRequired,
 };
 export default function CheckIsMaPhimSetShowtime(maPhim) {
     const [isMaPhimSetShowtime, setIsMaPhimSetShowtime] = useState(true)
-    const url = `http://localhost:4000/api/QuanLyPhim/LayThongTinPhim?MaPhim=${maPhim}`
+    const url = `${BASE_URL}/QuanLyPhim/LayThongTinPhim?MaPhim=${maPhim}`
     useEffect(() => {
         let cancel = Axios.CancelToken.source();
         const loadData = async () => {

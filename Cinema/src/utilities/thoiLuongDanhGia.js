@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react'
 import Axios from "axios";
+import { BASE_URL } from "../../src/constants/config";
 export default function ThoiLuongDanhGia(props) {
     const [data, setData] = useState({ thoiLuong: '120 ', danhGia: '..' })
-    const url = `http://localhost:4000/api/QuanLyRap/LayThongTinLichChieuPhim?MaPhim=${props.maPhim}`
+    const url = `${BASE_URL}/QuanLyRap/LayThongTinLichChieuPhim?MaPhim=${props.maPhim}`
     const style = {
         fontSize: 12,
         color: "#9b9b9b",

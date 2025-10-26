@@ -39,6 +39,7 @@ export default function SearchStickets() {
                 }}
             >
                 {movieRender?.map((movie) => (
+                    console.log(movie.hinhAnh),
                     <SwiperSlide key={movie.maPhim}>
                         <div
                             className="movie-card"

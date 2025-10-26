@@ -6,7 +6,7 @@ const currentUser = localStorage.getItem("user")
     : null;
 const avtIdUser = currentUser ? currentUser?.avtIdUser : nanoid(10);
 export { avtIdUser };
-export const BASE_URL = "http://localhost:4000/api";
+export const BASE_URL = "http://localhost:4003/api";
 export const URL_BANNER = 'http://movieapi.cyberlearn.vn/api/QuanLyPhim/LayDanhSachBanner';
 export const FAKE_AVATAR = `https://i.pravatar.cc/300?u=${avtIdUser}`;
 export const UNKNOW_USER = "/img/unknowUser.png";

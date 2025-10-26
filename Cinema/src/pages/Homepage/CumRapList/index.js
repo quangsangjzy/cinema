@@ -10,6 +10,7 @@ import {
   Typography,
   Divider,
 } from "@material-ui/core";
+import { BASE_URL } from "../../../constants/config";
 
 export default function CumRapList() {
   const [cinemaSystems, setCinemaSystems] = useState([]);
@@ -18,7 +19,7 @@ export default function CumRapList() {
 
   useEffect(() => {
     axios
-      .get("http://localhost:4000/api/QuanLyRap/LayThongTinLichChieuHeThongRap")
+      .get(`${BASE_URL}/QuanLyRap/LayThongTinLichChieuHeThongRap`)
       .then((res) => setCinemaSystems(res.data))
       .catch((err) => console.log(err));
   }, []);

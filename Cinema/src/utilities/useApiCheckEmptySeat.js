@@ -2,13 +2,14 @@
 import React, { useEffect, useState } from 'react'
 import Axios from "axios";
 import PropTypes from 'prop-types';
+import { BASE_URL } from "../../src/constants/config";
 
 CheckEmptySeat.propTypes = {
     maLichChieu: PropTypes.any.isRequired,
 };
 export default function CheckEmptySeat(maLichChieu) {
     const [isEmptySeat, setIsEmptySeat] = useState(false)
-    const url = `http://localhost:4000/api/QuanLyDatVe/LayDanhSachPhongVe?MaLichChieu=${maLichChieu}`
+    const url = `${BASE_URL}/QuanLyDatVe/LayDanhSachPhongVe?MaLichChieu=${maLichChieu}`
     useEffect(() => {
         let cancel = Axios.CancelToken.source();
         const loadData = async () => {

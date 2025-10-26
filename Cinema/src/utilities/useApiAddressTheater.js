@@ -1,8 +1,10 @@
 import { useEffect, useState } from 'react'
 import Axios from "axios";
+import { BASE_URL } from "../../src/constants/config";
+
 export default function UseThoiLuongDanhGia(maLichChieu) {
     const [data, setData] = useState({ diaChi: 'loading...' })
-    const url = `http://localhost:4000/api/QuanLyDatVe/LayDanhSachPhongVe?MaLichChieu=${maLichChieu}`
+    const url = `${BASE_URL}/QuanLyDatVe/LayDanhSachPhongVe?MaLichChieu=${maLichChieu}`
     useEffect(() => {
         if (!maLichChieu) {
             return

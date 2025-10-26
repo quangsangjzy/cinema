@@ -13,6 +13,8 @@ const path = require("path");
 let $ = require('jquery');
 const request = require('request');
 const moment = require('moment');
+dotenv.config();
+
 
 
 
@@ -32,20 +34,42 @@ app.options('*', function (req, res, next) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.sendStatus(204);
 });
-const PORT = process.env.PORT || 4001;
+const PORT = process.env.PORT || 4003;
+const PUBLIC_BASE_URL =
+    (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.replace(/\/$/, '')) ||
+    `http://localhost:${PORT}`;
 app.listen(PORT, () => console.log(`✅ Server đang chạy tại http://localhost:${PORT}`));
 // Các route khác
+
+app.set('trust proxy', true);
+function absUrl(p) {
+  if (!p) return null;
+  if (/^https?:\/\//i.test(p)) return p;     // đã là URL (Cloudinary) thì giữ nguyên
+  const rel = p.startsWith('/') ? p : `/${p}`;
+  return `${PUBLIC_BASE_URL}${rel}`;         // ← LUÔN dùng BASE_URL của server
+}
 app.get('/', (req, res) => res.send('API đang chạy...'));
 // Set up Global configuration access
-dotenv.config();
 
-// route mặc định
+// === Cloudinary URL helpers ===
+function toCloudUrl(keyOrUrl) {
+    if (!keyOrUrl) return null;
+    // Nếu FE gửi nhầm full URL thì giữ nguyên (đã là https://...)
+    if (/^https?:\/\//i.test(keyOrUrl)) return keyOrUrl;
+    const base = (process.env.ASSET_BASE_URL || '').replace(/\/$/, '');
+    const rel = String(keyOrUrl).replace(/^\/+/, ''); // bỏ slash đầu
+    return `${base}/${rel}`;
+}
 
+// Chỉ lưu "key" (public_id+ext) vào DB, cắt base nếu FE lỡ gửi full URL
+function toCloudKey(input) {
+    if (!input) return null;
+    const base = (process.env.ASSET_BASE_URL || '').replace(/\/$/, '');
+    let key = String(input);
+    if (base && key.startsWith(base)) key = key.slice(base.length);
+    return key.replace(/^\/+/, ''); // ví dụ: movies/1761226341963.png
+}
 
-// chỉnh port
-app.listen(process.env.PORT || 4001, function () {
-    console.log('Node app is running on port 4001');
-});
 module.exports = app;
 var dbConn = mysql.createConnection({
     host: 'localhost',
@@ -272,7 +296,7 @@ app.delete('/api/QuanLyNguoiDung/XoaNguoiDung', function (req, res) {
         if (error) throw error;
     });
 
-    dbConn.query('DELETE FROM nodejsapi.datve WHERE taiKhoanNguoiDat = ? AND isConfirm = 0 ', [req.query.TaiKhoan] , function (error, results, fields) {
+    dbConn.query('DELETE FROM nodejsapi.datve WHERE taiKhoanNguoiDat = ? AND isConfirm = 0 ', [req.query.TaiKhoan], function (error, results, fields) {
         return res.send("Success");
     })
 });
@@ -484,7 +508,7 @@ app.post('/api/QuanLyRap/AddCumRap', function (req, res) {
     dbConn.query('SELECT * FROM nodejsapi.cumrap where  maCumRap = ?', [req.body.maCumRap], async (error, results0, fields) => {
         if (error) throw error;
         for (const result0 of results0) {
-            dbConn.query("INSERT INTO nodejsapi.hethongrapvacumrap (hethongrap, cumrap) VALUES(?, ?)", [req.body.hid ,result0.cid], async (error, results1, fields) => {
+            dbConn.query("INSERT INTO nodejsapi.hethongrapvacumrap (hethongrap, cumrap) VALUES(?, ?)", [req.body.hid, result0.cid], async (error, results1, fields) => {
                 if (error) throw error;
             });
         }
@@ -495,13 +519,13 @@ app.post('/api/QuanLyRap/AddCumRap', function (req, res) {
 
 
 app.put('/api/QuanLyRap/SuaCumRap', function (req, res) {
-    dbConn.query('UPDATE nodejsapi.cumrap SET maCumRap=?, tenCumRap=?, diaChi=? WHERE maCumRap = ?',[req.body.maCumRap, req.body.tenCumRap, req.body.diaChi, req.body.maCumRap], function (error, results, fields) {
+    dbConn.query('UPDATE nodejsapi.cumrap SET maCumRap=?, tenCumRap=?, diaChi=? WHERE maCumRap = ?', [req.body.maCumRap, req.body.tenCumRap, req.body.diaChi, req.body.maCumRap], function (error, results, fields) {
         if (error) throw error;
-    } )
+    })
 });
 
 app.post('/api/QuanLyRap/XoaCumRap', function (req, res) {
-    dbConn.query('DELETE FROM nodejsapi.cumrap WHERE maCumRap = ?',[req.body.maCumRap], function (error, results, fields) {
+    dbConn.query('DELETE FROM nodejsapi.cumrap WHERE maCumRap = ?', [req.body.maCumRap], function (error, results, fields) {
         if (error) throw error;
     })
 
@@ -519,13 +543,13 @@ app.post('/api/QuanLyRap/XoaCumRap', function (req, res) {
 // QUAN LY DANH SACH RAP
 
 app.put('/api/QuanLyRap/SuaRap', function (req, res) {
-    dbConn.query('UPDATE nodejsapi.danhsachrap SET tenRap= ? WHERE maRap = ?',[req.body.tenRap, req.body.maRap], function (error, results, fields) {
+    dbConn.query('UPDATE nodejsapi.danhsachrap SET tenRap= ? WHERE maRap = ?', [req.body.tenRap, req.body.maRap], function (error, results, fields) {
         if (error) throw error;
-    } )
+    })
 });
 
 app.post('/api/QuanLyRap/XoaRap', function (req, res) {
-    dbConn.query('DELETE FROM nodejsapi.danhsachrap WHERE maRap = ?',[req.body.maRap], function (error, results, fields) {
+    dbConn.query('DELETE FROM nodejsapi.danhsachrap WHERE maRap = ?', [req.body.maRap], function (error, results, fields) {
         if (error) throw error;
     })
 });
@@ -549,16 +573,31 @@ app.post('/api/QuanLyRap/ThemRap', function (req, res) {
 
 // QuanLyPhim
 
-app.get('/api/QuanLyPhim/LayDanhSachPhim', function (req, res) {
-    dbConn.query('SELECT * FROM phiminsert', [], function (error, results, fields) {
-        if (error) throw error;
+app.set('trust proxy', true);
+function absUrl(req, p) {
+    if (!p) return null;
+    if (/^https?:\/\//i.test(p)) return p;         // đã là URL thì giữ nguyên (Cloudinary)
+    const rel = p.startsWith('/') ? p : `/${p}`;
+    return `${req.protocol}://${req.get('host')}${rel}`;
+}
 
-        for (var i = 0; i < results.length; i++) {
-            results[i].hinhAnh = Buffer.from(results[i].hinhAnh).toString()
-        }
-        return res.send(results);
-    });
+app.get('/api/QuanLyPhim/LayDanhSachPhim', (req, res) => {
+  const sql = `
+    SELECT maPhim, tenPhim, hinhAnh, ngayKhoiChieu, maTheLoaiPhim
+    FROM phiminsert
+    ORDER BY ngayKhoiChieu DESC, maPhim DESC
+  `;
+  dbConn.query(sql, (err, rows) => {
+    if (err) return res.status(500).send(err);
+
+    const items = rows.map(r => ({
+      ...r,
+      hinhAnh: absUrl(r.hinhAnh)   
+    }));
+    res.send(items);
+  });
 });
+
 
 app.get('/api/QuanLyPhim/LayThongTinPhim', function (req, res) {
     dbConn.query('SELECT * FROM phiminsert JOIN phiminsertvalichchieuinsert ON phiminsert.maPhim = phiminsertvalichchieuinsert.phiminsert JOIN lichchieuinsert ON lichchieuinsert.maLichChieu = phiminsertvalichchieuinsert.lichchieuinsert WHERE phiminsert.maPhim = ?', [req.query.MaPhim], async (error, results0, fields) => {
@@ -667,7 +706,7 @@ app.get('/api/QuanLyDatVe/LayDanhSachVeDaMuaCuaKhachHang', function (req, res) {
 });
 
 app.get('/api/QuanLyDatVe/LayVeTheoMaGhe', function (req, res) {
-    dbConn.query('SELECT * FROM lichchieuinsert JOIN phiminsertvalichchieuinsert ON lichchieuinsert.maLichChieu = phiminsertvalichchieuinsert.lichchieuinsert JOIN phiminsert ON phiminsert.maPhim = phiminsertvalichchieuinsert.phiminsert JOIN cumrapvalichchieuinsert ON lichchieuinsert.maLichChieu = cumrapvalichchieuinsert.lichchieuinsert JOIN cumrap ON cumrap.cid = cumrapvalichchieuinsert.cumrap JOIN datve ON datve.maLichChieu = lichchieuinsert.maLichChieu where datve.maGhe = ? and datve.taiKhoanNguoiDat = ?', [req.query.maGhe, req.query.taiKhoanNguoiDat] , async (error, results, fields) => {
+    dbConn.query('SELECT * FROM lichchieuinsert JOIN phiminsertvalichchieuinsert ON lichchieuinsert.maLichChieu = phiminsertvalichchieuinsert.lichchieuinsert JOIN phiminsert ON phiminsert.maPhim = phiminsertvalichchieuinsert.phiminsert JOIN cumrapvalichchieuinsert ON lichchieuinsert.maLichChieu = cumrapvalichchieuinsert.lichchieuinsert JOIN cumrap ON cumrap.cid = cumrapvalichchieuinsert.cumrap JOIN datve ON datve.maLichChieu = lichchieuinsert.maLichChieu where datve.maGhe = ? and datve.taiKhoanNguoiDat = ?', [req.query.maGhe, req.query.taiKhoanNguoiDat], async (error, results, fields) => {
         if (error) throw error;
 
         var danhSachVe = [];
@@ -698,11 +737,12 @@ app.get('/api/QuanLyDatVe/LayVeTheoMaGhe', function (req, res) {
 });
 
 app.delete('/api/DeleteTicketOfUser', function (req, res) {
-    console.log(req.query.maGhe,req.query.taiKhoanNguoiDat, "DELETE")
-    dbConn.query('DELETE FROM nodejsapi.datve WHERE maGhe= ? AND taiKhoanNguoiDat = ?', [req.query.maGhe,req.query.taiKhoanNguoiDat], async (error, results, fields) => {
+    console.log(req.query.maGhe, req.query.taiKhoanNguoiDat, "DELETE")
+    dbConn.query('DELETE FROM nodejsapi.datve WHERE maGhe= ? AND taiKhoanNguoiDat = ?', [req.query.maGhe, req.query.taiKhoanNguoiDat], async (error, results, fields) => {
         if (error) throw error;
         return res.send("Success");
-})})
+    })
+})
 
 app.get('/api/QuanLyDatVe/LayDanhSachVeDaMua', function (req, res) {
     dbConn.query('SELECT * FROM lichchieuinsert JOIN phiminsertvalichchieuinsert ON lichchieuinsert.maLichChieu = phiminsertvalichchieuinsert.lichchieuinsert JOIN phiminsert ON phiminsert.maPhim = phiminsertvalichchieuinsert.phiminsert JOIN cumrapvalichchieuinsert ON lichchieuinsert.maLichChieu = cumrapvalichchieuinsert.lichchieuinsert JOIN cumrap ON cumrap.cid = cumrapvalichchieuinsert.cumrap JOIN datve ON datve.maLichChieu = lichchieuinsert.maLichChieu WHERE datve.taiKhoanNguoiDat = ? ORDER BY ngayChieuGioChieu DESC', [req.query.taiKhoanNguoiDat], async (error, results, fields) => {
@@ -711,7 +751,7 @@ app.get('/api/QuanLyDatVe/LayDanhSachVeDaMua', function (req, res) {
         var danhSachVe = [];
         for (var i = 0; i < results.length; i++) {
             danhSachVe.push({
-                "maGhe":  results[i].maGhe,
+                "maGhe": results[i].maGhe,
                 "maLichChieu": results[i].maLichChieu,
                 "tenCumRap": results[i].tenCumRap,
                 "tenRap": results[i].tenRap,
@@ -835,7 +875,7 @@ app.post('/api/QuanLyDatVe/DatVe', async (req, res) => {
                             dbConn.query("INSERT INTO nodejsapi.thongke SET ? ", {
                                 tenPhim: result2.tenPhim,
                                 ngayMuaVe: new Date(),
-                                amount: req.body.amount/100
+                                amount: req.body.amount / 100
                             }, function (error, results, fields) {
                                 if (error) throw error;
                             })
@@ -944,12 +984,13 @@ app.delete('/api/QuanLyLichChieu/XoaLichChieu', function (req, res) {
 // QuanLyPhim
 
 app.post('/api/QuanLyPhim/ThemPhim', async (req, res) => {
+    const imgKey = toCloudKey(req.body.hinhAnh);
     const final = await new Promise((resolve, reject) => {
         dbConn.query("INSERT INTO phiminsert SET ? ", {
             "tenPhim": req.body.tenPhim,
             "biDanh": req.body.biDanh,
             "trailer": req.body.trailer,
-            "hinhAnh": req.body.hinhAnh,
+            "hinhAnh": imgKey,
             "moTa": req.body.moTa,
             "maNhom": req.body.maNhom,
             "ngayKhoiChieu": req.body.ngayKhoiChieu,
@@ -968,12 +1009,13 @@ app.post('/api/QuanLyPhim/ThemPhim', async (req, res) => {
 });
 
 app.post('/api/QuanLyPhim/CapNhatPhim', async (req, res) => {
+    const imgKey = toCloudKey(req.body.hinhAnh);
     const final = await new Promise((resolve, reject) => {
         dbConn.query("UPDATE phiminsert SET ? WHERE maPhim = ?", [{
             "tenPhim": req.body.tenPhim,
             "biDanh": req.body.biDanh,
             "trailer": req.body.trailer,
-            "hinhAnh": req.body.hinhAnh,
+            "hinhAnh": imgKey,
             "moTa": req.body.moTa,
             "maNhom": req.body.maNhom,
             "ngayKhoiChieu": req.body.ngayKhoiChieu,
