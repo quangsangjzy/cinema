@@ -1,62 +1,46 @@
-import React, { useState, useMemo } from "react";
-
+import React, { useState } from "react";
 import useStyles from "./style";
-import formatDate from "../../../../utilities/formatDate";
-import ItemCumRap from "../../../../components/ItemCumRap";
-import { selectDesktopData } from "../../../../reducers/selector/MovieDetail";
 
-export default function RightSection({ currentSelectedHeThongRapChieu }) {
-  const [indexSelected, setindexSelected] = useState(0);
-  const desktopData = useMemo(
-    () => selectDesktopData(currentSelectedHeThongRapChieu),
-    [currentSelectedHeThongRapChieu]
-  );
+export default function RightSection({ heThongRap, maPhim }) {
   const classes = useStyles();
-
-  const handleSelectDay = (i) => {
-    setindexSelected(i);
-  };
+  const [selectedDate, setSelectedDate] = useState(null);
 
   return (
-    <div>
+    <div className={classes.wrapperContainer}>
+      {/* Danh sách ngày chiếu */}
       <div className={classes.listDay}>
-        {desktopData?.arrayDay?.map((day, i) => (
-          <div
-            className={classes.dayItem}
-            key={day}
-            style={{ color: i === indexSelected ? "rgb(238, 130, 59)" : "#000" }}
-            onClick={() => handleSelectDay(i)}
-          >
-            <p>{formatDate(day).dayToday}</p>
-            <p
-              style={{
-                transition: "all .2s",
-                marginLeft:'5px'
-              }}
+        {heThongRap.cumRapChieu?.[0]?.lichChieuPhim.map((lich, index) => {
+          const day = lich.ngayChieuGioChieu.slice(0, 10);
+          return (
+            <div
+              key={index}
+              className={`${classes.dayItem} ${
+                selectedDate === day ? classes.activeDay : ""
+              }`}
+              onClick={() => setSelectedDate(day)}
             >
-              {formatDate(day).YyMmDd}
-            </p>
-          </div>
-        ))}
+              {day}
+            </div>
+          );
+        })}
       </div>
-      {desktopData?.allArrayCumRapChieuFilterByDay?.map(
-        (arrayCumRapChieuFilterByDay, i) => (
-          <div
-            style={{ display: indexSelected === i ? "block" : "none" }}
-            key={i}
-          >
-            {arrayCumRapChieuFilterByDay.map((item) => (
-              <ItemCumRap
-                key={item.tenCumRap}
-                tenCumRap={item.tenCumRap}
-                maLichChieu={item.maLichChieu}
-                lichChieuPhim={item.lichChieuPhim}
-                defaultExpanded={true}
-              />
-            ))}
+
+      {/* Danh sách cụm rạp */}
+      {heThongRap.cumRapChieu?.map((cum, index) => (
+        <div key={index} className={classes.cumRapBox}>
+          <h4 style={{ color: "#fff", marginBottom: 10 }}>{cum.tenCumRap}</h4>
+          <div className={classes.gioChieuWrap}>
+            {cum.lichChieuPhim.map((lich, i) => {
+              const time = lich.ngayChieuGioChieu.slice(11, 16);
+              return (
+                <div key={i} className={classes.gioChieuItem}>
+                  {time}
+                </div>
+              );
+            })}
           </div>
-        )
-      )}
+        </div>
+      ))}
     </div>
   );
 }

@@ -8,6 +8,7 @@ import "swiper/css/navigation";
 import "swiper/css/pagination";
 import Button from "@material-ui/core/Button";
 import "./style.css"
+import { shortenTitle } from "../../../../utilities/shortenTitle"
 
 export default function SearchStickets() {
     const { movieList: movieRender, errorMovieList } = useSelector(
@@ -39,19 +40,18 @@ export default function SearchStickets() {
                 }}
             >
                 {movieRender?.map((movie) => (
-                    console.log(movie.hinhAnh),
                     <SwiperSlide key={movie.maPhim}>
                         <div
-                            className="movie-card"
+                            className="movie-card1"
                             onClick={() => history.push(`/detail/${movie.maPhim}`)}
                         >
                             <img
                                 src={movie.hinhAnh}
-                                alt={movie.tenPhim}
+                                alt={shortenTitle(movie.tenPhim,4)}
                                 className="movie-poster"
                             />
                             <div className="movie-info">
-                                <h4 className="movie-title">{movie.tenPhim}</h4>
+                                <h4 className="movie-title">{shortenTitle(movie.tenPhim,4)}</h4>
                                 <p className="movie-date">
                                     {movie.ngayKhoiChieu?.slice(0, 10) || "TBA"}
                                 </p>

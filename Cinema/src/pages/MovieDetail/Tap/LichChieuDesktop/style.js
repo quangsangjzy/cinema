@@ -1,69 +1,98 @@
-import { makeStyles } from "@material-ui/core"
-import { customScrollbar, underLine } from '../../../../styles/materialUi';
+import { makeStyles } from "@material-ui/core";
 
 const useStyles = makeStyles((theme) => ({
-  root: {
-    flexGrow: 1,
-    backgroundColor: theme.palette.background.paper,
-    display: 'flex',
-    borderRadius: "10px",
-    margin: '30px 100px',
-    color: "#000",
-  },
-  leftSection: {
-    width: "28%",
-  },
-  indicator: {
-    backgroundColor: "transparent",
+  container: {
+    display: "flex",
+    backgroundColor: "#0b1a2d", // nền tối kiểu BHD
+    color: "#fff",
+    borderRadius: 10,
+    overflow: "hidden",
+    minHeight: 600,
   },
 
-  wrapper: {
-    justifyContent: "flex-start",
-    flexDirection: "row",
+  /* --- Panel bên trái: logo hệ thống rạp --- */
+  leftPanel: {
+    width: "20%",
+    borderRight: "1px solid #1c2a3e",
+    display: "flex",
+    flexDirection: "column",
+    alignItems: "center",
+    backgroundColor: "#0e2035",
+    paddingTop: 20,
+    overflowY: "auto",
   },
-  tabRoot: {
-    padding: 20,
-    textAlign: "left",
-    fontSize: 12,
-    opacity: .3,
+  tabItem: {
+    minWidth: "100%",
+    padding: "20px 0",
     "&:hover": {
-      opacity: 1,
+      backgroundColor: "#143455",
     },
-    transition: "all .2s",
-    ...underLine
+  },
+  tabSelected: {
+    backgroundColor: "#1f3e66 !important",
+  },
+  tabWrapper: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   logo: {
-    width: 50,
-    marginRight: 10,
+    width: 60,
+    height: 60,
+    borderRadius: "50%",
+    objectFit: "contain",
+  },
+  theaterName: {
+    color: "#fff",
+    fontWeight: 600,
+    fontSize: 14,
+    textAlign: "center",
+    marginTop: 8,
   },
 
-  rightSection: {
-    width: "72%",
+  /* --- Panel bên phải: chi tiết lịch chiếu --- */
+  rightPanel: {
+    flex: 1,
+    backgroundColor: "#102541",
+    padding: "20px 30px",
+    overflowY: "auto",
   },
 
+  /* --- Các cụm rạp --- */
+  wrapperContainer: {
+    backgroundColor: "#132c51",
+    borderRadius: 8,
+    padding: 20,
+  },
   listDay: {
-    height: "90px",
-    padding: "16px !important",
-    paddingLeft: "0 !important",
-    paddingRight: "0 !important",
-    backgroundColor: "#fff",
-    borderRadius: 10,
-
     display: "flex",
-
-    overflowX: "scroll",
-    overflowY: "hidden",
-    whiteSpace: "nowrap",
-    ...customScrollbar,
+    overflowX: "auto",
+    gap: 10,
+    paddingBottom: 10,
+    marginBottom: 20,
   },
   dayItem: {
-    display: 'flex',
-    alignItem: 'center',
-    padding: 10,
-    fontWeight: 500,
+    flex: "0 0 auto",
+    backgroundColor: "#203b63",
+    borderRadius: 8,
+    padding: "10px 16px",
     textAlign: "center",
     cursor: "pointer",
+    color: "#fff",
+    transition: "0.2s",
+    "&:hover": {
+      backgroundColor: "#ee823b",
+    },
   },
-
+  activeDay: {
+    backgroundColor: "#ee823b",
+  },
+  cumRapBox: {
+    backgroundColor: "#1b335b",
+    borderRadius: 10,
+    padding: "18px 20px",
+    marginBottom: 15,
+  },
 }));
-export default useStyles
+
+export default useStyles;

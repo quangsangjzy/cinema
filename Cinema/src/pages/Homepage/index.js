@@ -6,7 +6,6 @@ import { getMovieList } from "../../reducers/actions/Movie";
 import { getTheaters } from "../../reducers/actions/Theater";
 import Carousel from "./Carousel";
 import Theaters from "./Theaters";
-import Showtime from "./Showtime";
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import CumRapList from "./CumRapList";

@@ -14,10 +14,11 @@ import { OPEN_MODAL } from "../../../reducers/constants/ModalTrailer";
 const play = '/img/carousel/play-video.png';
 
 export default function Desktop({ movieDetailShowtimes: data, isMobile }) {
+   const { maPhim } = useParams();       
   const [onClickBtnMuave, setOnClickBtnMuave] = useState(0);
-  const param = useParams();
+  // const param = useParams();
   const [quantityComment, setQuantityComment] = useState(0);
-  const { thoiLuong, danhGia } = useApiThoiLuongDanhGia(param.maPhim);
+  const { thoiLuong, danhGia } = useApiThoiLuongDanhGia(maPhim);
   const classes = useStyles({ bannerImg: data?.hinhAnh });
   const [imagePage404, setImagePage404] = useState(false);
   let location = useLocation();
@@ -111,6 +112,7 @@ export default function Desktop({ movieDetailShowtimes: data, isMobile }) {
   </div>
   <Tap
     data={data}
+    maPhim={maPhim}
     onClickBtnMuave={onClickBtnMuave}
     onIncreaseQuantityComment={onIncreaseQuantityComment}
     isMobile={isMobile}

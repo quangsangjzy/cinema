@@ -82,16 +82,16 @@ export default function CenteredTabs({
   const classes = useStyles({ isMobile });
 
   useEffect(() => {
-    window.scrollTo(0, 0); 
+    window.scrollTo(0, 0);
     setValueTab(() => 0);
     setCroll(() => onClickBtnMuave);
-  }, [onClickBtnMuave]); 
+  }, [onClickBtnMuave]);
 
   useEffect(() => {
     if (onClickBtnMuave !== 0) {
       scroll("TapMovieDetail");
     }
-  }, [croll]); 
+  }, [croll]);
   const handleChange = (event, newValue) => {
     setValueTab(newValue);
   };
@@ -160,9 +160,14 @@ export default function CenteredTabs({
           index={location.state?.comingMovie ? "hide" : 0}
           isMobile={isMobile}
         >
-          {isMobile ? <LichChieuMobile /> : <LichChieuDesktop data={data} />}
+          {isMobile ? (
+            <LichChieuMobile maPhim={param.maPhim} />   
+          ) : (
+          <LichChieuDesktop maPhim={param.maPhim} /> 
+    )}
         </TabPanel>
       </Fade>
+
       <Fade
         timeout={400}
         in={valueTab === (location.state?.comingMovie ? 0 : 1)}

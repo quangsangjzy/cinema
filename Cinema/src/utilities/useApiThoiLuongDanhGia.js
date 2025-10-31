@@ -4,7 +4,7 @@ import { BASE_URL } from "../../src/constants/config";
 
 export default function UseThoiLuongDanhGia(maPhim) {
     const [data, setData] = useState({ thoiLuong: '120', danhGia: '10' })
-    const url = `${BASE_URL}/api/QuanLyRap/LayThongTinLichChieuPhim?MaPhim=${maPhim}`
+    const url = `${BASE_URL}/QuanLyRap/LayThongTinLichChieuPhim?MaPhim=${maPhim}`
     useEffect(() => {
         let getInfoFlimCancel = Axios.CancelToken.source();
         const loadData = async () => {

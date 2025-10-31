@@ -1,0 +1,145 @@
+.movie-section {
+  background-color: #000;
+  color: #fff;
+  padding: 60px 0;
+  text-align: center;
+}
+
+.movie-title {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.movie-section-title {
+  font-size: 26px;
+  font-weight: 700;
+  margin-bottom: 40px;
+  text-transform: uppercase;
+  color: #fff;
+}
+
+/* ✅ Căn giữa, giới hạn chiều ngang, sát 2 bên như “hệ thống rạp” */
+.movie-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 20px 25px; /* giảm khoảng cách giữa các card */
+  justify-items: center;
+  max-width: 1400px; /* tương tự hệ thống rạp */
+  margin: 0 auto; /* căn giữa */
+  padding: 0 60px; /* tạo khoảng cách 2 bên lề vừa phải */
+}
+
+.movie-card {
+  background-color: #fff;
+  color: #000;
+  border-radius: 10px;
+  overflow: hidden;
+  width: 210px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.movie-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 18px rgba(255, 255, 255, 0.2);
+}
+
+.movie-img {
+  width: 100%;
+  height: 300px;
+  object-fit: cover;
+}
+
+.movie-info {
+  padding: 12px 8px;
+}
+
+.movie-name {
+  font-size: 15px;
+  font-weight: 600;
+  margin: 5px 0;
+}
+
+.movie-date {
+  font-size: 13px;
+  color: #666;
+  margin-bottom: 10px;
+}
+
+.movie-btn {
+  background-color: #ff7139;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  padding: 8px 16px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.3s;
+  width: 100%;
+}
+
+.movie-btn:hover {
+  background-color: #ff884d;
+}
+
+/* ✅ Pagination */
+.pagination {
+  margin-top: 40px;
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+}
+
+.pagination button {
+  background-color: #fff;
+  border: none;
+  padding: 8px 14px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-weight: 600;
+  color: #000;
+  transition: all 0.3s;
+}
+
+.pagination button:hover {
+  background-color: #ff7139;
+  color: #fff;
+}
+
+.pagination button.active {
+  background-color: #ff7139;
+  color: #fff;
+}
+
+.pagination button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ✅ Responsive */
+@media (max-width: 1400px) {
+  .movie-grid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+@media (max-width: 992px) {
+  .movie-grid {
+    grid-template-columns: repeat(3, 1fr);
+    padding: 0 30px;
+  }
+}
+
+@media (max-width: 768px) {
+  .movie-grid {
+    grid-template-columns: repeat(2, 1fr);
+    padding: 0 20px;
+  }
+}
+
+@media (max-width: 500px) {
+  .movie-grid {
+    grid-template-columns: repeat(1, 1fr);
+    padding: 0 15px;
+  }
+}

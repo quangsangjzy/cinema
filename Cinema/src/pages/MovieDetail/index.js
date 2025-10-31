@@ -6,24 +6,30 @@ import { getMovieShowtimes } from '../../reducers/actions/MovieDetail';
 import { DISPLAY_MOBILE_HOMEPAGE } from '../../constants/config'
 import { RESET_MOVIEDETAIL_REDUCER } from '../../reducers/constants/MovieDetail';
 import Detail from './Detail';
+
 export default function Index() {
   const isMobile = useMediaQuery(DISPLAY_MOBILE_HOMEPAGE)
   const { movieDetailShowtimes, errorMovieDetailShowtimes } = useSelector((state) => state.movieDetailReducer);
-  const param = useParams()
+  const { maPhim } = useParams();                    // ✅ rõ ràng
   const dispatch = useDispatch();
-  useEffect(function () {
-    dispatch(getMovieShowtimes(param.maPhim))
+
+  useEffect(() => {
+    if (!maPhim) return;                             // ✅ tránh dispatch khi chưa có
+    dispatch(getMovieShowtimes(maPhim));
     return () => {
       dispatch({ type: RESET_MOVIEDETAIL_REDUCER })
     }
-  }, [])
+  }, [maPhim, dispatch]);                             // ✅ thêm dependency
 
   if (errorMovieDetailShowtimes) {
     return <div>{errorMovieDetailShowtimes}</div>
   }
+
   return (
-    <>
-      <Detail movieDetailShowtimes={movieDetailShowtimes} isMobile={isMobile} />
-    </>
+    <Detail
+      maPhim={maPhim}                                // ✅ TRUYỀN XUỐNG
+      movieDetailShowtimes={movieDetailShowtimes}
+      isMobile={isMobile}
+    />
   )
 }

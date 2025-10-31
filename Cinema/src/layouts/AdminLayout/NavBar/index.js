@@ -31,47 +31,47 @@ const items = [
   {
     href: '/admin/dashboard',
     icon: DashboardIcon,
-    title: 'Dashboard'
+    title: 'Bảng điều khiển'
   },
   {
     href: '/admin/movies',
     icon: MovieIcon,
-    title: 'Films'
+    title: 'Phim'
   },
   {
     href: '/admin/theater-complex',
     icon: TheatersIcon,
-    title: 'Theater Complex'
+    title: 'Cụm rạp'
   },
   {
     href: '/admin/cinema-management',
     icon: MovieFilterIcon,
-    title: 'Cinema Management'
+    title: 'Quản lý rạp chiếu'
   },
   {
     href: '/admin/movie-genre',
     icon: MovieCreationTwoToneIcon,
-    title: 'Movie Genre'
+    title: 'Thể loại phim'
   },
   {
     href: '/admin/chair-management',
     icon: EventSeatIcon,
-    title: 'Chair Management'
+    title: 'Quản lý ghế'
   },
   {
     href: '/admin/users',
     icon: PeopleAltIcon,
-    title: 'Users'
+    title: 'Quản lý ghế'
   },
   {
     href: '/admin/showtimes',
     icon: PostAddIcon,
-    title: 'Showtime'
+    title: 'Lịch chiếu'
   },
   {
     href: '/admin/ticket-management',
     icon: ListAltIcon,
-    title: 'Ticket Management'
+    title: 'Quản lý vé'
   }
 ];
 

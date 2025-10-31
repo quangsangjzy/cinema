@@ -36,17 +36,25 @@ export default function Carousel() {
     dotsClass: "slickdotsbanner",
   };
 
-  const getFilmBanner = async () => {
-    try {
-      const res = await axios.get(`${BASE_URL}/QuanLyPhim/LayDanhSachPhim`);
-      const list = res.data || [];
-      setBanner(list); // ✅ gán vào state, không gọi lại chính hàm
-      console.log("✅ Danh sách phim lấy được:", list);
-    } catch (err) {
-      console.error("❌ Lỗi khi load phim:", err);
-    }
-  };
+const getFilmBanner = async () => {
+  try {
+    const res = await axios.get(`${BASE_URL}/QuanLyPhim/LayDanhSachPhim`);
+    const list = res.data || [];
 
+    // 🔹 Danh sách mã phim muốn hiển thị trong slide
+    const selectedIds = [1347, 1282, 1322, 1345, 1346];
+
+    // 🔹 Lọc phim theo mã phim
+    const filteredList = Array.isArray(list)
+      ? list.filter((item) => selectedIds.includes(item?.maPhim))
+      : [];
+
+    setBanner(filteredList);
+    console.log("✅ Danh sách phim hiển thị slide:", filteredList);
+  } catch (err) {
+    console.error("❌ Lỗi khi load phim:", err);
+  }
+};
 
   useEffect(() => {
     dispatch({ type: LOADING_BACKTO_HOME_COMPLETED });

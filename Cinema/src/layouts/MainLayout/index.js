@@ -8,7 +8,7 @@ import Footer from "./Footer";
 
 const useStyles = makeStyles((theme) => ({
     top: {
-        marginTop: 64,
+        marginTop: 90,
         [theme.breakpoints.down("xs")]: {
             marginTop: 56,
         },
@@ -44,8 +44,9 @@ export default function MainLayout(props) {
                 ` }} />
 
             <Header />
-            <div className=""></div>
-            {props.children}
+            <div className={classes.top}>
+                {props.children}
+            </div>
             <Footer />
             <ScrollToTop showUnder={160}>
                 <img

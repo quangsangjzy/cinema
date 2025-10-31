@@ -1,26 +1,36 @@
 const express = require("express");
-const multer = require("multer");
-const path = require("path");
-
 const router = express.Router();
+const uploadCloud = require("../middleware/uploadCloud");
+const db = require("../config/db"); 
 
-// Cấu hình nơi lưu ảnh
-const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    cb(null, "public/uploads");
-  },
-  filename: (req, file, cb) => {
-    cb(null, Date.now() + path.extname(file.originalname));
-  },
-});
+// ==============================
+// UPLOAD ẢNH LÊN CLOUDINARY
+// VÀ LƯU LINK VÀO BẢNG phiminsert
+// ==============================
+router.post("/upload", uploadCloud.single("image"), (req, res) => {
+  try {
+    const imageUrl = req.file.path; // link Cloudinary
+    const { maPhim } = req.body; // client gửi kèm mã phim cần update
 
-const upload = multer({ storage });
+    if (!maPhim) {
+      return res.status(400).json({ error: "Thiếu mã phim (maPhim) trong body" });
+    }
 
-// Route upload ảnh
-router.post("/upload", upload.single("image"), (req, res) => {
-  if (!req.file) return res.status(400).json({ error: "Không có file upload!" });
-  const imageUrl = `http://localhost:4000/uploads/${req.file.filename}`;
-  res.json({ message: "Upload thành công", imageUrl });
+    // Cập nhật cột hinhAnh cho phim có mã tương ứng
+    const sql = "UPDATE phiminsert SET hinhAnh = ? WHERE maPhim = ?";
+    db.query(sql, [imageUrl, maPhim], (err, result) => {
+      if (err) return res.status(500).json({ error: err.message });
+      if (result.affectedRows === 0)
+        return res.status(404).json({ error: "Không tìm thấy phim có mã này" });
+
+      res.json({
+        message: "Upload thành công và đã lưu link Cloudinary vào bảng phiminsert",
+        imageUrl,
+      });
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 module.exports = router;
