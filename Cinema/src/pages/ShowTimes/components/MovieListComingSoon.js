@@ -53,7 +53,7 @@ export default function MovieListNowShowing() {
 
   return (
     <div className="movie-section">
-      <h2 className="movie-section-title">DANH SÁCH PHIM NỔI BẬT</h2>
+      <h2 className="movie-section-title">DANH SÁCH PHIM SẮP CHIẾU</h2>
 
       <div className="movie-grid">
         {currentMovies.map((movie) => (

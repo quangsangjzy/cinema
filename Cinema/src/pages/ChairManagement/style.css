@@ -1,0 +1,70 @@
+.chairRoot {
+  padding: 16px;
+}
+
+.chairToolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.chairGridWrap {
+  overflow-x: auto;
+}
+
+.chairSeatGrid {
+  display: grid;
+  grid-template-columns: repeat(16, 48px);
+  grid-auto-rows: 48px;
+  gap: 10px;
+  justify-content: start;
+  padding: 16px;
+}
+
+.chairSeatCell {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  user-select: none;
+  border-radius: 10px;
+}
+
+.chairSeatCell:hover {
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.chairSeatLabel {
+  position: absolute;
+  bottom: 2px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1;
+  padding: 2px 6px;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.95);
+  color: #111;
+  border: 1px solid rgba(0, 0, 0, 0.12);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+  pointer-events: none;
+}
+
+.chairLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.chairLegendItem {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}

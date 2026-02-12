@@ -47,12 +47,12 @@ const usersApi = {
         return axiosClient.get(path);
     },
 
-    getDanhSachVeDatCuaKhachHang : () => {
+    getDanhSachVeDatCuaKhachHang: () => {
         const path = `/QuanLyDatVe/LayDanhSachVeDaMuaCuaKhachHang`;
         return axiosClient.get(path);
     },
 
-    getVe : (taiKhoanNguoiDat, maGhe) => {
+    getVe: (taiKhoanNguoiDat, maGhe) => {
         const path = `/QuanLyDatVe/LayVeTheoMaGhe?taiKhoanNguoiDat=${taiKhoanNguoiDat}&maGhe=${maGhe}`;
         return axiosClient.get(path);
     },
@@ -60,33 +60,34 @@ const usersApi = {
     creatPaymentUrl: (amount, maLichChieu, danhSachVe, taiKhoanNguoiDung) => {
         const path = '/create_payment_url';
         const params = {
-          amount: amount,
-          maLichChieu: maLichChieu,
-          taiKhoanNguoiDung: taiKhoanNguoiDung
+            amount: amount,
+            maLichChieu: maLichChieu,
+            taiKhoanNguoiDung: taiKhoanNguoiDung
         };
-      
+
         danhSachVe.forEach((value, index) => {
-          params[`danhSachVe[${index}]`] = value;
+            // đảm bảo backend nhận được JSON (không bị [object Object])
+            params[`danhSachVe[${index}]`] = JSON.stringify(value);
         });
-      
+
         return axiosClient.get(path, { params });
-      },
-    updateStatusOfTicket : (data) => {
+    },
+    updateStatusOfTicket: (data) => {
         const path = `/QuanLyDatVe/ThayDoiTrangThaiDatVe`;
         return axiosClient.put(path, data)
     },
 
-    getMonth : () => {
+    getMonth: () => {
         const path = "/ThongKe/getMonth";
         return axiosClient.get(path);
     },
 
-    getPhim : () => {
+    getPhim: () => {
         const path = "ThongKe/getPhim";
         return axiosClient.get(path);
     },
 
-    deleteTicketOfUser : (data) => {
+    deleteTicketOfUser: (data) => {
         const path = `/DeleteTicketOfUser?maGhe=${data.maGhe}&taiKhoanNguoiDat=${data.taiKhoanNguoiDat}`;
         return axiosClient.delete(path)
     }

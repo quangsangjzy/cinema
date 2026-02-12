@@ -294,7 +294,7 @@ export default function MoviesManagement() {
                             disabled={loadingAddUploadMovie}
                             startIcon={<AddBoxIcon />}
                         >
-                            thêm phim
+                            Thêm Phim
                         </button>
                     </div>
                     <div className={` ${classes.itemCtro}`}>

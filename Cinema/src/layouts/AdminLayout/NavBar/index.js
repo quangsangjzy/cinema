@@ -61,7 +61,7 @@ const items = [
   {
     href: '/admin/users',
     icon: PeopleAltIcon,
-    title: 'Quản lý ghế'
+    title: 'Quản tài khoản'
   },
   {
     href: '/admin/showtimes',
@@ -72,7 +72,12 @@ const items = [
     href: '/admin/ticket-management',
     icon: ListAltIcon,
     title: 'Quản lý vé'
-  }
+  },
+  {
+    href: "/admin/news",
+    icon: PostAddIcon,
+    title: "Tin tức"
+  },
 ];
 
 const useStyles = makeStyles(() => ({
@@ -106,7 +111,7 @@ export default function NavBar({ onMobileClose, openMobile }) {
 
   const user = {
     avatar: FAKE_AVATAR,
-    jobTitle: 'Senior Developer',
+    jobTitle: 'Nguyễn Thành Long',
     name: currentUser?.hoTen,
   };
 
@@ -123,7 +128,7 @@ export default function NavBar({ onMobileClose, openMobile }) {
         alignItems="center"
         display="flex"
         flexDirection="column"
-        p={2} 
+        p={2}
       >
         <Tooltip title="Thông tin tài khoản">
           <Avatar
@@ -169,7 +174,7 @@ export default function NavBar({ onMobileClose, openMobile }) {
           anchor="left"
           classes={{ paper: classes.mobileDrawer }}
           onClose={onMobileClose}
-          open={openMobile} 
+          open={openMobile}
           variant="temporary"
         >
           {content}

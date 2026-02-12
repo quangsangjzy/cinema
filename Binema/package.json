@@ -29,7 +29,8 @@
     "request": "^2.88.2",
     "serve-favicon": "^2.4.5",
     "set-tz": "^0.2.0",
-    "sha256": "^0.2.0"
+    "sha256": "^0.2.0",
+    "@payos/node": "^1.0.0"
   },
   "scripts": {
     "start": "node server.js"

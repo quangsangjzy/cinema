@@ -8,31 +8,41 @@ export default function LichChieuDesktop({ maPhim }) {
   const classes = useStyles();
   const [heThongRapChieu, setHeThongRapChieu] = useState([]);
   const [selectedHeThong, setSelectedHeThong] = useState(null);
+  const [loading, setLoading] = useState(false);
 
   const fetchedRef = useRef(false);
 
   useEffect(() => {
-    console.log("👀 LichChieuDesktop render với maPhim:", maPhim);
-    if (!maPhim) {
-      console.warn("⚠️ maPhim chưa sẵn sàng, bỏ qua API call.");
-      return;
-    }
-    if (fetchedRef.current) return;      // tránh gọi lại (dev)
+    if (!maPhim) return;
+
+    // tránh gọi 2 lần ở React strict mode (dev)
+    if (fetchedRef.current) return;
     fetchedRef.current = true;
 
     const url = `${BASE_URL}/QuanLyRap/LayThongTinLichChieuPhim?MaPhim=${maPhim}`;
-    console.log("🔗 URL gọi API:", url);
 
     const fetchData = async () => {
       try {
+        setLoading(true);
         const res = await axios.get(url);
-        console.log("🎬 Dữ liệu lịch chiếu:", res.data);
 
         const list = res?.data?.heThongRapChieu ?? [];
-        setHeThongRapChieu(list);
-        setSelectedHeThong(list.length ? list[0] : null);
+
+        // ✅ LỌC: chỉ giữ các hệ thống rạp có ít nhất 1 suất chiếu
+        const listWithShowtimes = list.filter((ht) =>
+          (ht?.cumRapChieu || []).some(
+            (cum) => (cum?.lichChieuPhim || []).length > 0
+          )
+        );
+
+        setHeThongRapChieu(listWithShowtimes);
+        setSelectedHeThong(listWithShowtimes.length ? listWithShowtimes[0] : null);
       } catch (err) {
-        console.error("❌ Lỗi khi load lịch chiếu:", err);
+        console.error("Lỗi khi load lịch chiếu:", err);
+        setHeThongRapChieu([]);
+        setSelectedHeThong(null);
+      } finally {
+        setLoading(false);
       }
     };
 
@@ -41,10 +51,12 @@ export default function LichChieuDesktop({ maPhim }) {
 
   return (
     <div className={classes.container}>
-      {/* CỘT TRÁI: logo hệ thống rạp */}
+      {/* CỘT TRÁI */}
       <div className={classes.leftPanel}>
-        {heThongRapChieu.length === 0 ? (
-          <div className={classes.emptyNote}>Không có lịch chiếu.</div>
+        {loading ? (
+          <div className={classes.emptyNote}>Đang tải lịch chiếu...</div>
+        ) : heThongRapChieu.length === 0 ? (
+          <div className={classes.emptyNote}>Hiện chưa có lịch chiếu.</div>
         ) : (
           heThongRapChieu.map((item) => (
             <div
@@ -71,12 +83,14 @@ export default function LichChieuDesktop({ maPhim }) {
         )}
       </div>
 
-      {/* CỘT PHẢI: chi tiết lịch chiếu */}
+      {/* CỘT PHẢI */}
       <div className={classes.rightPanel}>
-        {selectedHeThong ? (
-          <RightSection heThongRap={selectedHeThong} maPhim={maPhim} />
+        {loading ? (
+          <div className={classes.emptyRight}>Đang tải dữ liệu...</div>
+        ) : selectedHeThong ? (
+          <RightSection heThongRap={selectedHeThong} />
         ) : (
-          <div className={classes.emptyRight}>Chưa có cụm rạp để hiển thị.</div>
+          <div className={classes.emptyRight}>Hiện chưa có lịch chiếu cho phim này.</div>
         )}
       </div>
     </div>

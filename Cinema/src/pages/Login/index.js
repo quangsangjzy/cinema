@@ -1,13 +1,11 @@
 import React, { useEffect, useState } from "react";
-
-import { makeStyles } from "@material-ui/core";
 import { useLocation, useHistory } from "react-router-dom";
 import { useSelector, useDispatch } from "react-redux";
 import * as yup from "yup";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import useMediaQuery from "@material-ui/core/useMediaQuery";
 import { useTheme } from "@material-ui/core/styles";
-import "./style.css"
+import "./style.css";
 import logoTix from "../Register/logo/logoTix.png";
 import { login, resetErrorLoginRegister } from "../../reducers/actions/Auth";
 import { LOADING_BACKTO_HOME } from "../../reducers/constants/Lazy";
@@ -73,25 +71,42 @@ export default function Login() {
         }
     };
 
+    const bannerUrl =
+        "https://movie0706.cybersoft.edu.vn/hinhanh/vi-anh-van-tin_gp09.jpg";
+
     return (
         <>
             <section className="ftco-section">
                 <div className="container">
                     <div className="row justify-content-center">
-                        <div className="col-md-6 text-center mb-5">
-                            <h2 className="heading-section">Login</h2>
-                        </div>
-                    </div>
-                    <div className="row justify-content-center">
                         <div className="col-md-12 col-lg-10">
-                            <div className="wrap d-md-flex">
+                            <div className="wrap d-md-flex auth-card">
                                 <div
-                                    className="img"
-                                    style={{ backgroundImage: "" }}
-                                >
-                                    <img src="https://movie0706.cybersoft.edu.vn/hinhanh/vi-anh-van-tin_gp09.jpg" />
-                                </div>
-                                <div className="login-wrap p-4 p-md-5">
+                                    className="auth-media"
+                                    style={{ backgroundImage: `url(${bannerUrl})` }}
+                                />
+                                <div className="login-wrap p-4 p-md-5 auth-body">
+                                    <div className="auth-header">
+                                        <img className="auth-logo" src={logoTix} alt="logo" />
+                                        <div className="auth-title-wrap">
+                                            <h2 className="auth-title">Đăng nhập</h2>
+                                            <p className="auth-subtitle">Chào mừng bạn quay lại Cinema.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="auth-switch">
+                                        <button type="button" className="auth-switch-btn active">
+                                            Đăng nhập
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className="auth-switch-btn"
+                                            onClick={handlesignUp}
+                                        >
+                                            Đăng ký
+                                        </button>
+                                    </div>
+
                                     <div>
                                         <Formik
                                             initialValues={{
@@ -102,7 +117,7 @@ export default function Login() {
                                             onSubmit={handleSubmit}
                                         >
                                             {() => (
-                                                <Form className="col-sm-10 mx-auto">
+                                                <Form className="col-sm-12 col-md-10 mx-auto">
                                                     <div className="form-group position-relative">
                                                         <label>Tài khoản&nbsp;</label>
                                                         <ErrorMessage
@@ -126,39 +141,42 @@ export default function Login() {
                                                                 <small className="text-danger">{msg}</small>
                                                             )}
                                                         />
-                                                        <Field
-                                                            type={typePassword}
-                                                            className="form-control"
-                                                            name="matKhau"
-                                                        />
-                                                        <div
-                                                            onMouseDown={handleHold}
-                                                            onMouseUp={handleRelease}
-                                                            onClick={handleShowPassword}
-                                                        >
-
+                                                        <div className="auth-password">
+                                                            <Field
+                                                                type={typePassword}
+                                                                className="form-control"
+                                                                name="matKhau"
+                                                            />
+                                                            <button
+                                                                type="button"
+                                                                className="auth-toggle"
+                                                                onMouseDown={handleHold}
+                                                                onMouseUp={handleRelease}
+                                                                onClick={handleShowPassword}
+                                                            >
+                                                                {typePassword === "password" ? "Hiện" : "Ẩn"}
+                                                            </button>
                                                         </div>
                                                     </div>
 
                                                     <button
-                                                        style={{
-                                                            backgroundColor: "rgb(238, 130, 59)",
-                                                            borderColor: "rgb(238, 130, 59)",
-                                                            cursor: "pointer",
-                                                        }}
-                                                        disable={errorLogin?.toString()}
                                                         type="submit"
-                                                        className="btn btn-success mt-3 container"
+                                                        className="btn btn-success mt-3 container auth-primary"
                                                     >
                                                         Đăng nhập
                                                     </button>
-                                                    <p
-                                                        className="dk"
-                                                        style={{ cursor: "pointer" }}
-                                                        onClick={handlesignUp}
-                                                    >
-                                                        * Đăng ký
-                                                    </p>
+
+                                                    <div className="auth-footer">
+                                                        <span>Chưa có tài khoản?</span>
+                                                        <button
+                                                            type="button"
+                                                            className="auth-link"
+                                                            onClick={handlesignUp}
+                                                        >
+                                                            Đăng ký ngay
+                                                        </button>
+                                                    </div>
+
                                                     {errorLogin && (
                                                         <div className="alert alert-danger">
                                                             <span> {errorLogin}</span>

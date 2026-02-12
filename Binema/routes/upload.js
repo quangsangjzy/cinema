@@ -33,4 +33,18 @@ router.post("/upload", uploadCloud.single("image"), (req, res) => {
   }
 });
 
+router.post("/tintuc", uploadCloud.single("image"), (req, res) => {
+  try {
+    // multer-storage-cloudinary thường trả url ở req.file.path
+    const url = req.file?.path || req.file?.secure_url || req.file?.url;
+    const public_id = req.file?.filename || req.file?.public_id;
+
+    if (!url) return res.status(400).json({ message: "Upload thất bại" });
+
+    return res.json({ url, public_id });
+  } catch (e) {
+    return res.status(500).json({ message: "Server error", error: String(e) });
+  }
+});
+
 module.exports = router;

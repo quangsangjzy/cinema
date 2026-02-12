@@ -60,22 +60,45 @@ export default function Register() {
     }
   };
 
+  const handleLogin = () => {
+    history.push("/login", location.state);
+  };
+
+  const bannerUrl =
+    "https://movie0706.cybersoft.edu.vn/hinhanh/vi-anh-van-tin_gp09.jpg";
+
   return (
     <>
-      <section className="ftco-section" style={{marginBottom : "200px"}}>
+      <section className="ftco-section">
         <div className="container">
           <div className="row justify-content-center">
-            <div className="col-md-6 text-center mb-5">
-              <h2 className="heading-section">Login</h2>
-            </div>
-          </div>
-          <div className="row justify-content-center">
             <div className="col-md-12 col-lg-10">
-              <div className="wrap d-md-flex">
-                <div className="img" style={{ backgroundImage: "" }}>
-                  <img src="https://movie0706.cybersoft.edu.vn/hinhanh/vi-anh-van-tin_gp09.jpg" />
-                </div>
-                <div className="login-wrap p-4 p-md-5">
+              <div className="wrap d-md-flex auth-card">
+                <div
+                  className="auth-media"
+                  style={{ backgroundImage: `url(${bannerUrl})` }}
+                />
+                <div className="login-wrap p-4 p-md-5 auth-body">
+                  <div className="auth-header">
+                    <img className="auth-logo" src={logoTix} alt="logo" />
+                    <div className="auth-title-wrap">
+                      <h2 className="auth-title">Đăng ký</h2>
+                    </div>
+                  </div>
+
+                  <div className="auth-switch">
+                    <button
+                      type="button"
+                      className="auth-switch-btn"
+                      onClick={handleLogin}
+                    >
+                      Đăng nhập
+                    </button>
+                    <button type="button" className="auth-switch-btn active">
+                      Đăng ký
+                    </button>
+                  </div>
+
                   <div>
                     <Formik
                       initialValues={{
@@ -90,8 +113,8 @@ export default function Register() {
                       validationSchema={signupUserSchema} // validationSchdema:  thu vien yup nhập sai ko submit được
                       onSubmit={handleSubmit}
                     >
-                      {(formikProps) => (
-                        <Form className="col-sm-12">
+                      {() => (
+                        <Form className="col-sm-12 col-md-10 mx-auto">
                           <div className="form-group">
                             <label>Tài khoản&nbsp;</label>
                             <ErrorMessage
@@ -166,18 +189,20 @@ export default function Register() {
                       
                           <div className="text-center">
                             <button
-                             style={{
-                              backgroundColor: "rgb(238, 130, 59)",
-                              borderColor: "rgb(238, 130, 59)",
-                              cursor: "pointer",
-                              width:'100%'
-                            }}
-                            className="btn btn-success mt-3 container"
+                            className="btn btn-success mt-3 container auth-primary"
                               type="submit"
-                              disable={loadingRegister.toString()}
+                              disabled={loadingRegister}
                             >
                               Đăng Ký
                             </button>
+
+                            <div className="auth-footer" style={{ justifyContent: "center" }}>
+                              <span>Đã có tài khoản?</span>
+                              <button type="button" className="auth-link" onClick={handleLogin}>
+                                Đăng nhập
+                              </button>
+                            </div>
+
                             {errorRegister && (
                               <div className="alert alert-danger">
                                 <span>{errorRegister}</span>

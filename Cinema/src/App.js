@@ -32,6 +32,13 @@ import Showtimes from "./pages/ShowTimes";
 import Member from "./pages/Member"
 import Newspage from "./pages/Newspage"
 import Aboutus from "./pages/AboutUs"
+import NewsDetail from "./pages/Newspage/Details";
+import NewsManagement from "./pages/NewsManagement";
+import AddNews from "./pages/NewsManagement/AddNews";
+import TinTucDetails from "./pages/Newspage/Details";
+import EditNews from "./pages/NewsManagement/EditNews";
+import ChairManagement from "./pages/ChairManagement";
+
 
 function App() {
     return (
@@ -40,12 +47,13 @@ function App() {
             <ModalTrailer />
             <Suspense fallback={<LazyLoad />}>
                 <Switch>
-                    <Route exact path={["/", "/detail/:maPhim", "/taikhoan", "/lichchieu", "/thanhvien", "/tintuc", "/vechungtoi"]}>
+                    <Route exact path={["/", "/detail/:maPhim", "/taikhoan", "/lichchieu", "/thanhvien", "/tintuc", "/tintuc/:slug", "/vechungtoi"]}>
                         <MainLayout>
                             <Route exact path="/" component={Homepage} />
                             <Route exact path="/detail/:maPhim" component={MovieDetail} />
                             <Route exact path="/lichchieu" component={Showtimes} />
                             <Route exact path="/thanhvien" component={Member} />
+                            <Route exact path="/tintuc/:slug" component={TinTucDetails} />
                             <Route exact path="/tintuc" component={Newspage} />
                             <Route exact path="/vechungtoi" component={Aboutus} />
                             <UserProfileRoute
@@ -65,7 +73,7 @@ function App() {
 
                     <Route
                         exact
-                        path={["/admin/users", "/admin/movies", "/admin/showtimes", "/admin/films/addnew", "/admin/ticket-management", "/admin/dashboard", "/admin/theater-complex", "/admin/cinema-management", "/admin/showtimes/:maLichChieu", "/admin/movie-genre", "/admin/chair-management", "/invoice"]}
+                        path={["/admin/users", "/admin/movies", "/admin/showtimes", "/admin/films/addnew", "/admin/ticket-management", "/admin/dashboard", "/admin/theater-complex", "/admin/cinema-management", "/admin/showtimes/:maLichChieu", "/admin/movie-genre", "/admin/chair-management", "/invoice", "/admin/news", "/admin/news/add", "/admin/news/edit/:slug"]}
                     >
                         <AdminLayout>
                             <AdminRoute
@@ -122,6 +130,10 @@ function App() {
                                 path="/invoice"
                                 component={Invoice}
                             />
+                            <AdminRoute exact path="/admin/news" component={NewsManagement} />
+                            <AdminRoute exact path="/admin/news/add" component={AddNews} />
+                            <AdminRoute exact path="/admin/news/edit/:slug" component={EditNews} />
+                            <AdminRoute exact path="/admin/chair-management" component={ChairManagement} />
                         </AdminLayout>
                     </Route>
 

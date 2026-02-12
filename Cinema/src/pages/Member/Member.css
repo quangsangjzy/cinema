@@ -1,0 +1,140 @@
+/* Basic styles for Member page */
+.member-page {
+  padding: 40px 16px;
+  min-height: 80vh;
+  color: #222;
+  font-family: "Segoe UI", Roboto, "Helvetica Neue", Arial;
+}
+
+.overview-box {
+  background: #fff;
+  border-radius: 8px;
+  padding: 20px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+}
+
+.member-container {
+  max-width: 1100px;
+  margin: 0 auto;
+}
+
+/* Loading / error */
+.member-loading,
+.member-error {
+  text-align: center;
+  padding: 60px 0;
+  font-size: 18px;
+}
+
+/* Chưa đăng nhập */
+.member-need-login {
+  background: #fff;
+  border-radius: 12px;
+  padding: 28px 22px;
+  box-shadow: 0 10px 28px rgba(0,0,0,0.08);
+  max-width: 560px;
+  margin: 40px auto;
+  text-align: center;
+}
+.mnl-title {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 10px;
+}
+.mnl-desc {
+  color: #555;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.mnl-btn {
+  background: #ff6a00;
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-weight: 700;
+}
+.mnl-btn:hover { opacity: 0.92; }
+.mnl-link { margin-top: 12px; color: #666; }
+.mnl-link a { color: #ff6a00; font-weight: 700; }
+
+/* Tabs */
+.member-tabs-nav {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 18px;
+}
+.member-tabs-nav button {
+  background: white;
+  border: 1px solid #ddd;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-radius: 4px;
+}
+.member-tabs-nav button:hover { background: #f6f6f6; }
+.member-tabs-nav button.active {
+  border-color: #ff6a00;
+  color: #ff6a00;
+  font-weight: 600;
+}
+
+/* Summary & layout */
+.member-summary {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 18px;
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  margin-bottom: 16px;
+}
+.ms-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+.ms-avatar {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  object-fit: cover;
+  border: 2px solid #eee;
+}
+.ms-tier { color: #777; margin-top: 6px; }
+
+/* Points */
+.ms-right { text-align: right; }
+.ms-points-number { font-size: 20px; font-weight: 700; color: #ff6a00; }
+.ms-points-label { font-size: 13px; color: #666; }
+
+/* TierProgress container override */
+.tp-wrapper { margin-top: 10px; }
+
+/* History table */
+.history-table {
+  border-radius: 6px;
+  padding: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+.history-table table { width: 100%; border-collapse: collapse; }
+.history-table th, .history-table td {
+  padding: 10px 8px; text-align: left; border-bottom: 1px solid #f0f0f0;
+  font-size: 14px;
+}
+.history-empty { padding: 24px; text-align: center; color: #777; }
+
+/* Rewards list */
+.rewards-list { display: grid; grid-template-columns: repeat(auto-fill,minmax(220px,1fr)); gap: 12px; margin-top: 12px; }
+.reward-card { background: white; padding: 12px; border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,0.04); }
+.reward-card h4 { margin: 0 0 6px 0; }
+.reward-card p { margin: 0 0 10px 0; color: #666; }
+.reward-card button {
+  background: #ff6a00; color: white; border: none; padding: 8px 10px; border-radius: 4px; cursor: pointer;
+}
+
+/* Profile form */
+.profile-form { background: white; padding: 14px; border-radius: 6px; box-shadow: 0 6px 18px rgba(0,0,0,0.04); }
+.profile-form label { display:block; font-size:13px; margin:8px 0 4px; color:#444; }
+.profile-form input, .profile-form select { width:100%; padding:8px 10px; border:1px solid #ddd; border-radius:4px; box-sizing:border-box; }
+.profile-form button { margin-top: 12px; background: #ff6a00; color: #fff; border: none; padding: 10px 12px; border-radius: 6px; cursor: pointer; }

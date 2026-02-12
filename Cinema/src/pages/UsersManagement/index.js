@@ -670,9 +670,9 @@ export default function UsersManagement() {
                         >
                             {addUser.toggle
                                 ? addUser.isFilledIn
-                                    ? "thêm user"
+                                    ? "Thêm User"
                                     : "quản lý user"
-                                : "thêm user"}
+                                : "Thêm User"}
                         </button>
                     </div>
                     <div className="">

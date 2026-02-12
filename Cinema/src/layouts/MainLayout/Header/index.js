@@ -22,6 +22,8 @@ export default function Header() {
     let location = useLocation();
     const history = useHistory();
     const [openDrawer, setOpenDrawer] = useState(false);
+    const pathname = (location?.pathname || "").toLowerCase();
+    const isAuthPage = pathname === "/login" || pathname === "/signup";
 
     // nếu đang mở drawer mà chuyển sang màn hình lớn thì phải tự đóng lại
     useEffect(() => {
@@ -158,10 +160,12 @@ export default function Header() {
                 {/* Auth BÊN PHẢI */}
                 <div className="d-none d-lg-flex align-items-center">
                     {!currentUser ? (
-                        <>
-                            <button className="btn btn-warning mr-2" onClick={handleLogin}>Đăng nhập</button>
-                            <button className="btn btn-success" onClick={handleRegister}>Đăng ký</button>
-                        </>
+                        isAuthPage ? null : (
+                            <>
+                                <button className="btn btn-warning mr-2" onClick={handleLogin}>Đăng nhập</button>
+                                <button className="btn btn-success" onClick={handleRegister}>Đăng ký</button>
+                            </>
+                        )
                     ) : (
                         <>
                             <button className="btn btn-outline-light mr-2" onClick={handleUser}>
@@ -185,10 +189,12 @@ export default function Header() {
 
                         <li className="nav-item mt-2">
                             {!currentUser ? (
-                                <>
-                                    <button className="btn btn-warning btn-block mb-2" onClick={handleLogin}>Đăng nhập</button>
-                                    <button className="btn btn-success btn-block" onClick={handleRegister}>Đăng ký</button>
-                                </>
+                                isAuthPage ? null : (
+                                    <>
+                                        <button className="btn btn-warning btn-block mb-2" onClick={handleLogin}>Đăng nhập</button>
+                                        <button className="btn btn-success btn-block" onClick={handleRegister}>Đăng ký</button>
+                                    </>
+                                )
                             ) : (
                                 <>
                                     <button className="btn btn-outline-light btn-block mb-2" onClick={handleUser}>

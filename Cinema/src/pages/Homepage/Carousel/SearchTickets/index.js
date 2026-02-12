@@ -21,7 +21,7 @@ export default function SearchStickets() {
 
     return (
         <div className="movie-list-container">
-            <h2 className="movie-list-title text-white">DANH SÁCH PHIM NỔI BẬT</h2>
+            <h2 className="movie-list-title text-white">TOP PHIM</h2>
             <Swiper
                 modules={[Navigation, Pagination, Autoplay]}
                 spaceBetween={0}

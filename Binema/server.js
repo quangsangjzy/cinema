@@ -15,8 +15,22 @@ const request = require('request');
 const moment = require('moment');
 dotenv.config();
 
+// payOS (SDK hiện tại dùng ESM, nên mình hỗ trợ cả require + dynamic import)
+let PayOS;
+async function getPayOSClass() {
+  if (PayOS) return PayOS;
 
+  try {
+    ({ PayOS } = require("@payos/node"));
+    return PayOS;
+  } catch (e) {
+    // fallback sang import()
+  }
 
+  const mod = await import("@payos/node");
+  PayOS = mod.PayOS || (mod.default && mod.default.PayOS);
+  return PayOS;
+}
 
 app.use(cors())
 app.use(bodyParser.json({ limit: '5000mb' }));
@@ -33,11 +47,20 @@ app.options('*', function (req, res, next) {
     res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
     res.sendStatus(204);
 });
+
+// module.exports = app;
+var dbConn = mysql.createConnection({
+    host: 'localhost',
+    user: 'root',
+    password: 'sang2002',
+    database: 'cinema'
+});
+dbConn.connect();
+const db = dbConn;
 const PORT = process.env.PORT || 4003;
 const PUBLIC_BASE_URL =
     (process.env.PUBLIC_BASE_URL && process.env.PUBLIC_BASE_URL.replace(/\/$/, '')) ||
     `http://localhost:${PORT}`;
-app.listen(PORT, () => console.log(`✅ Server đang chạy tại http://localhost:${PORT}`));
 // Các route khác
 
 app.set('trust proxy', true);
@@ -69,14 +92,6 @@ function toCloudKey(input) {
     return key.replace(/^\/+/, ''); // ví dụ: movies/1761226341963.png
 }
 
-module.exports = app;
-var dbConn = mysql.createConnection({
-    host: 'localhost',
-    user: 'root',
-    password: 'sang2002',
-    database: 'cinema'
-});
-dbConn.connect();
 
 const validateToken = (req, res) => {
     const tokenHeaderKey = process.env.TOKEN_HEADER_KEY;
@@ -92,66 +107,84 @@ const validateToken = (req, res) => {
     }
 }
 // VNPay
-app.get('/api/create_payment_url', function (req, res, next) {
+// Thanh toán (payOS)
+app.get("/api/create_payment_url", async function (req, res) {
+  try {
+    const PayOSClass = await getPayOSClass();
+    if (!PayOSClass) {
+      return res.status(500).json({
+        message: "Thiếu thư viện payOS. Hãy chạy: npm i @payos/node (trong thư mục Binema)",
+      });
+    }
 
-    process.env.TZ = 'Asia/Ho_Chi_Minh';
+    const { amount, maLichChieu, taiKhoanNguoiDung } = req.query;
+    const totalAmount = Number(amount || 0);
 
-    let date = new Date();
-    let createDate = moment(date).format('YYYYMMDDHHmmss');
+    if (!maLichChieu || !taiKhoanNguoiDung || !Number.isFinite(totalAmount) || totalAmount <= 0) {
+      return res.status(400).json({
+        message: "Thiếu hoặc sai tham số: amount, maLichChieu, taiKhoanNguoiDung",
+      });
+    }
 
-    let ipAddr = req.headers['x-forwarded-for'] ||
-        req.connection.remoteAddress ||
-        req.socket.remoteAddress ||
-        req.connection.socket.remoteAddress;
+    // Lấy danh sách vé từ query dạng danhSachVe[0], danhSachVe[1]...
+    const seats = Object.keys(req.query)
+      .filter((k) => k.startsWith("danhSachVe["))
+      .sort((a, b) => {
+        const ai = Number(a.match(/\[(\d+)\]/)?.[1] || 0);
+        const bi = Number(b.match(/\[(\d+)\]/)?.[1] || 0);
+        return ai - bi;
+      })
+      .map((k) => {
+        const raw = req.query[k];
+        if (typeof raw === "string") {
+          try {
+            return JSON.parse(raw);
+          } catch {
+            return { tenDayDu: String(raw), giaVe: 0 };
+          }
+        }
+        return raw;
+      })
+      .filter(Boolean);
 
-    let config = require('config');
-    const { amount, maLichChieu, danhSachVe, taiKhoanNguoiDung } = req.query;
-    let tmnCode = config.get('vnp_TmnCode');
-    let secretKey = config.get('vnp_HashSecret');
-    let vnpUrl = config.get('vnp_Url');
-    let returnUrl = config.get('vnp_ReturnUrl');
-    let orderId = moment(date).format('DDHHmmss');
+    const PUBLIC_WEB_URL = (process.env.PUBLIC_WEB_URL || "http://localhost:3000").replace(/\/$/, "");
+    const returnUrl = `${PUBLIC_WEB_URL}/datve/${maLichChieu}`;
+    const cancelUrl = `${PUBLIC_WEB_URL}/datve/${maLichChieu}`;
 
+    // orderCode bắt buộc là number
+    const orderCode = Number(String(Date.now()).slice(-9));
 
-    let querystring = require('qs');
-    let returnUrlParams = querystring.stringify({
-        danhSachVe,
-        taiKhoanNguoiDung,
-        maLichChieu
-    }, { encode: false });
+    const payOS = new PayOSClass({
+      clientId: process.env.PAYOS_CLIENT_ID,
+      apiKey: process.env.PAYOS_API_KEY,
+      checksumKey: process.env.PAYOS_CHECKSUM_KEY,
+    });
 
-    let currCode = 'VND';
-    let vnp_Params = {};
-    vnp_Params['vnp_Version'] = '2.1.0';
-    vnp_Params['vnp_Command'] = 'pay';
-    vnp_Params['vnp_TmnCode'] = tmnCode;
-    vnp_Params['vnp_Locale'] = 'vn';
-    vnp_Params['vnp_CurrCode'] = currCode;
-    vnp_Params['vnp_TxnRef'] = orderId;
-    vnp_Params['vnp_OrderInfo'] = 'Thanh toan cho ma GD:' + orderId;
-    vnp_Params['vnp_OrderType'] = 'other';
-    vnp_Params['vnp_Amount'] = amount * 100;
-    vnp_Params['vnp_ReturnUrl'] = returnUrl + maLichChieu + '?' + returnUrlParams;
-    vnp_Params['vnp_IpAddr'] = ipAddr;
-    vnp_Params['vnp_CreateDate'] = createDate;
+    const items = (seats.length ? seats : [{ tenDayDu: "Vé phim", giaVe: totalAmount }]).map((s) => ({
+      name: `Ghế ${s.tenDayDu || s.maGhe || ""}`.trim(),
+      quantity: 1,
+      price: Number(s.giaVe || 0),
+    }));
 
-    console.log('Amount:', amount);
-    console.log('Ma Lich Chieu:', maLichChieu);
-    console.log('Tai Khoan: ', taiKhoanNguoiDung)
-    console.log('Danh sach ve: ', danhSachVe)
+    const paymentData = {
+      orderCode,
+      amount: totalAmount,
+      description: `Thanh toán vé (${maLichChieu})`,
+      items,
+      cancelUrl,
+      returnUrl,
+    };
 
-    vnp_Params = sortObject(vnp_Params);
-
-
-    let signData = querystring.stringify(vnp_Params, { encode: false });
-    let crypto = require("crypto");
-    let hmac = crypto.createHmac("sha512", secretKey);
-    let signed = hmac.update(new Buffer(signData, 'utf-8')).digest("hex");
-    vnp_Params['vnp_SecureHash'] = signed;
-    vnpUrl += '?' + querystring.stringify(vnp_Params, { encode: false });
-
-    console.log(vnpUrl);
-    res.send(vnpUrl)
+    // SDK dùng paymentRequests.create để tạo link thanh toán
+    const paymentLink = await payOS.paymentRequests.create(paymentData);
+    return res.send(paymentLink.checkoutUrl);
+  } catch (error) {
+    console.error("[payOS] create_payment_url error:", error);
+    return res.status(500).json({
+      message: "Không tạo được link thanh toán payOS",
+      error: error?.message || String(error),
+    });
+  }
 });
 
 // QuanLyRap
@@ -785,58 +818,147 @@ app.get('/api/QuanLyDatVe/LayDanhSachVeDaMua', function (req, res) {
 });
 
 app.get('/api/QuanLyDatVe/LayDanhSachPhongVe', function (req, res) {
-    dbConn.query('SELECT * FROM lichchieuinsert JOIN phiminsertvalichchieuinsert ON lichchieuinsert.maLichChieu = phiminsertvalichchieuinsert.lichchieuinsert JOIN phiminsert ON phiminsert.maPhim = phiminsertvalichchieuinsert.phiminsert JOIN cumrapvalichchieuinsert ON lichchieuinsert.maLichChieu = cumrapvalichchieuinsert.lichchieuinsert JOIN cumrap ON cumrap.cid = cumrapvalichchieuinsert.cumrap WHERE maLichChieu = ?', [req.query.MaLichChieu], async (error, results, fields) => {
-        if (error) throw error;
-        let danhSachGhe = Array.apply(null, Array(160)).map(function () { })
-        danhSachGhe = await new Promise((resolve, reject) => {
-            dbConn.query('SELECT * FROM datve WHERE maLichChieu = ?', [req.query.MaLichChieu], async (error, results1, fields) => {
-                if (error) throw error;
-                for (const result1 of results1) {
-                    danhSachGhe[result1.tenGhe] = {
-                        "maGhe": result1.maGhe,
-                        "tenGhe": result1.tenGhe,
-                        "maRap": result1.maRap,
-                        "loaiGhe": result1.loaiGhe,
-                        "stt": result1.tenGhe,
-                        "giaVe": result1.giaVe,
-                        "daDat": true,
-                        "taiKhoanNguoiDat": result1.taiKhoanNguoiDat
+    dbConn.query(
+        'SELECT * FROM lichchieuinsert JOIN phiminsertvalichchieuinsert ON lichchieuinsert.maLichChieu = phiminsertvalichchieuinsert.lichchieuinsert JOIN phiminsert ON phiminsert.maPhim = phiminsertvalichchieuinsert.phiminsert JOIN cumrapvalichchieuinsert ON lichchieuinsert.maLichChieu = cumrapvalichchieuinsert.lichchieuinsert JOIN cumrap ON cumrap.cid = cumrapvalichchieuinsert.cumrap WHERE maLichChieu = ?',
+        [req.query.MaLichChieu],
+        async (error, results, fields) => {
+            if (error) throw error;
+
+            const maRap = String(results?.[0]?.maRap ?? '');
+            const basePrice = Number(results?.[0]?.giaVe ?? 0);
+            const DEFAULT_TOTAL = 160;
+
+            // 1) Lấy cấu hình ghế theo rạp (nếu có). Nếu bảng chưa tồn tại thì fallback về logic cũ.
+            const seatConfig = await new Promise((resolve) => {
+                dbConn.query(
+                    'SELECT seatIndex, loaiGhe, isActive FROM cinema.ghe WHERE maRap = ? ORDER BY seatIndex ASC',
+                    [maRap],
+                    (err, rows) => {
+                        if (err) {
+                            // Nếu chưa tạo table cinema.ghe, cứ fallback
+                            return resolve({ ok: false, rows: [], err });
+                        }
+                        resolve({ ok: true, rows: rows || [] });
                     }
-                }
-                resolve(danhSachGhe)
+                );
             });
-        })
-        for (let i = 0; i < 160; i++) {
-            if (danhSachGhe[i] === undefined) {
-                danhSachGhe[i] = {
-                    "maGhe": i,
-                    "tenGhe": i > 9 ? String(i) : "0" + String(i),
-                    "maRap": results[0].maRap,
-                    "loaiGhe": i > 44 && i < 90 ? "Vip" : "Thuong",
-                    "stt": i > 9 ? String(i) : "0" + String(i),
-                    "giaVe": i > 44 && i < 90 ? results[0].giaVe + 15000 : results[0].giaVe,
-                    "daDat": false,
-                    "taiKhoanNguoiDat": null
+
+            const configMap = new Map();
+            if (seatConfig.ok && seatConfig.rows.length) {
+                for (const r of seatConfig.rows) {
+                    configMap.set(Number(r.seatIndex), {
+                        loaiGhe: r.loaiGhe,
+                        isActive: Number(r.isActive) === 1,
+                    });
                 }
             }
+
+            // 2) Lấy danh sách ghế đã đặt của lịch chiếu
+            let danhSachGhe = Array.apply(null, Array(DEFAULT_TOTAL)).map(function () { });
+            danhSachGhe = await new Promise((resolve, reject) => {
+                dbConn.query('SELECT * FROM datve WHERE maLichChieu = ?', [req.query.MaLichChieu], async (error, results1, fields) => {
+                    if (error) throw error;
+                    for (const result1 of results1) {
+                        const seatIndex = Number(result1.tenGhe);
+                        const cfg = configMap.get(seatIndex);
+                        danhSachGhe[seatIndex] = {
+                            "maGhe": result1.maGhe,
+                            "tenGhe": result1.tenGhe,
+                            "maRap": maRap,
+                            "loaiGhe": result1.loaiGhe,
+                            "stt": result1.tenGhe,
+                            "giaVe": result1.giaVe,
+                            "daDat": true,
+                            "taiKhoanNguoiDat": result1.taiKhoanNguoiDat,
+                            "isActive": cfg ? cfg.isActive : true,
+                        }
+                    }
+                    resolve(danhSachGhe)
+                });
+            })
+
+            // 3) Fill ghế chưa đặt: dùng config nếu có, còn không thì logic cũ (Vip theo index)
+            for (let i = 0; i < DEFAULT_TOTAL; i++) {
+                const cfg = configMap.get(i);
+                const loaiGhe = cfg?.loaiGhe || (i > 44 && i < 90 ? "Vip" : "Thuong");
+                const isActive = cfg ? cfg.isActive : true;
+                const giaVe = loaiGhe === "Vip" ? basePrice + 15000 : basePrice;
+
+                if (danhSachGhe[i] === undefined) {
+                    danhSachGhe[i] = {
+                        "maGhe": i,
+                        "tenGhe": i > 9 ? String(i) : "0" + String(i),
+                        "maRap": maRap,
+                        "loaiGhe": loaiGhe,
+                        "stt": i > 9 ? String(i) : "0" + String(i),
+                        "giaVe": giaVe,
+                        "daDat": false,
+                        "taiKhoanNguoiDat": null,
+                        "isActive": isActive,
+                    }
+                } else {
+                    // ghế đã đặt -> đảm bảo vẫn có isActive theo config
+                    danhSachGhe[i].isActive = isActive;
+                }
+            }
+
+            return res.send({
+                "thongTinPhim": {
+                    "maLichChieu": results[0].maLichChieu,
+                    "tenCumRap": results[0].tenCumRap,
+                    "tenRap": results[0].tenRap,
+                    "diaChi": results[0].diaChi,
+                    "tenPhim": results[0].tenPhim,
+                    "hinhAnh": results[0].hinhAnh,
+                    "ngayChieu": results[0].ngayChieuGioChieu,
+                    "gioChieu": results[0].ngayChieuGioChieu
+                },
+                "danhSachGhe": danhSachGhe
+            });
         }
-        return res.send({
-            "thongTinPhim": {
-                "maLichChieu": results[0].maLichChieu,
-                "tenCumRap": results[0].tenCumRap,
-                "tenRap": results[0].tenRap,
-                "diaChi": results[0].diaChi,
-                "tenPhim": results[0].tenPhim,
-                "hinhAnh": results[0].hinhAnh,
-                "ngayChieu": results[0].ngayChieuGioChieu,
-                "gioChieu": results[0].ngayChieuGioChieu
-            },
-            "danhSachGhe": danhSachGhe
-        });
-    });
+    );
 });
 
 app.post('/api/QuanLyDatVe/DatVe', async (req, res) => {
+
+    // Nếu có cấu hình ghế theo rạp (bảng cinema.ghe), chặn đặt các ghế bị khóa (isActive=0)
+    try {
+        const maLichChieu = req.body.maLichChieu;
+        const seatIndexList = (req.body.danhSachVe || []).map(v => Number(v.maGhe)).filter(v => Number.isFinite(v));
+
+        if (maLichChieu && seatIndexList.length) {
+            const [lcRows] = await dbConn.promise().query(
+                'SELECT maRap FROM lichchieuinsert WHERE maLichChieu = ? LIMIT 1',
+                [maLichChieu]
+            );
+            const maRap = String(lcRows?.[0]?.maRap ?? '');
+
+            // Query seat config (nếu table chưa tồn tại thì bỏ qua)
+            let gheRows = [];
+            try {
+                const [rows] = await dbConn.promise().query(
+                    `SELECT seatIndex, isActive FROM cinema.ghe WHERE maRap = ? AND seatIndex IN (${seatIndexList.map(() => '?').join(',')})`,
+                    [maRap, ...seatIndexList]
+                );
+                gheRows = rows || [];
+            } catch (e) {
+                gheRows = [];
+            }
+
+            if (gheRows.length) {
+                const inactive = gheRows.find(r => Number(r.isActive) !== 1);
+                if (inactive) {
+                    return res.status(400).json({
+                        message: 'Có ghế đang bị khóa, không thể đặt.',
+                        seatIndex: inactive.seatIndex,
+                    });
+                }
+            }
+        }
+    } catch (e) {
+        // Không chặn luồng đặt vé nếu lỗi check (fallback theo logic cũ)
+        console.log('[DatVe] seat active check error:', e?.message || e);
+    }
 
     var listVe = [];
     var email = "";
@@ -1067,3 +1189,761 @@ function sortObject(obj) {
     }
     return sorted;
 }
+
+function slugify(str = "") {
+  return str
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s-]/g, "")
+    .trim()
+    .replace(/\s+/g, "-");
+}
+
+app.get("/api/QuanLyTinTuc/LayTinTucTrangChu", (req, res) => {
+  const featuredPromoSql = `
+    SELECT id,title,slug,thumbnailUrl,coverUrl,category,isFeatured,publishedAt
+    FROM tintuc
+    WHERE status='PUBLISHED' AND category='PROMO'
+    ORDER BY isFeatured DESC, pinOrder DESC, publishedAt DESC
+    LIMIT 3
+  `;
+
+  const promoCarouselSql = `
+    SELECT id,title,slug,thumbnailUrl,coverUrl,category,publishedAt
+    FROM tintuc
+    WHERE status='PUBLISHED' AND category='PROMO'
+    ORDER BY publishedAt DESC
+    LIMIT 20
+  `;
+
+  const sidelineFeaturedSql = `
+    SELECT id,title,slug,thumbnailUrl,coverUrl,category,publishedAt
+    FROM tintuc
+    WHERE status='PUBLISHED' AND category='SIDELINE'
+    ORDER BY isFeatured DESC, pinOrder DESC, publishedAt DESC
+    LIMIT 1
+  `;
+
+  const sidelineRightTopSql = `
+    SELECT id,title,slug,thumbnailUrl,coverUrl,category,publishedAt
+    FROM tintuc
+    WHERE status='PUBLISHED' AND category='SIDELINE'
+    ORDER BY publishedAt DESC
+    LIMIT 2
+  `;
+
+  const sidelineCarouselSql = `
+    SELECT id,title,slug,thumbnailUrl,coverUrl,category,publishedAt
+    FROM tintuc
+    WHERE status='PUBLISHED' AND category='SIDELINE'
+    ORDER BY publishedAt DESC
+    LIMIT 20
+  `;
+
+  db.query(featuredPromoSql, (e1, featured) => {
+    if (e1) return res.status(500).json({ message: "DB error", error: e1 });
+
+    db.query(promoCarouselSql, (e2, promoCarousel) => {
+      if (e2) return res.status(500).json({ message: "DB error", error: e2 });
+
+      db.query(sidelineFeaturedSql, (e3, sidelineFeatured) => {
+        if (e3) return res.status(500).json({ message: "DB error", error: e3 });
+
+        db.query(sidelineRightTopSql, (e4, sidelineRightTop) => {
+          if (e4) return res.status(500).json({ message: "DB error", error: e4 });
+
+          db.query(sidelineCarouselSql, (e5, sidelineCarousel) => {
+            if (e5) return res.status(500).json({ message: "DB error", error: e5 });
+
+            res.json({
+              featuredPromos: featured,
+              promoCarousel,
+              sideline: {
+                featured: sidelineFeatured?.[0] || null,
+                rightTop: sidelineRightTop,
+                carousel: sidelineCarousel,
+              },
+            });
+          });
+        });
+      });
+    });
+  });
+});
+
+app.get("/api/QuanLyTinTuc/LayDanhSachTinTuc", (req, res) => {
+  const category = req.query.category || "PROMO";
+  const q = (req.query.q || "").trim();
+  const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+  const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || "10", 10), 1), 50);
+  const offset = (page - 1) * pageSize;
+
+  const where = [];
+  const params = [];
+
+  where.push("status='PUBLISHED'");
+  where.push("category=?");
+  params.push(category);
+
+  if (q) {
+    where.push("(title LIKE ? OR excerpt LIKE ?)");
+    params.push(`%${q}%`, `%${q}%`);
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const sql = `
+    SELECT id,title,slug,excerpt,thumbnailUrl,coverUrl,category,publishedAt,viewCount
+    FROM tintuc
+    ${whereSql}
+    ORDER BY publishedAt DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  const countSql = `SELECT COUNT(*) as total FROM tintuc ${whereSql}`;
+
+  db.query(countSql, params, (e1, countRows) => {
+    if (e1) return res.status(500).json({ message: "DB error", error: e1 });
+
+    db.query(sql, [...params, pageSize, offset], (e2, rows) => {
+      if (e2) return res.status(500).json({ message: "DB error", error: e2 });
+
+      res.json({
+        page,
+        pageSize,
+        total: countRows?.[0]?.total || 0,
+        items: rows,
+      });
+    });
+  });
+});
+
+// ===== Helpers for TinTuc =====
+const ALLOWED_CATEGORIES = new Set(["PROMO", "SIDELINE", "EVENT", "RECRUIT"]);
+const ALLOWED_STATUS = new Set(["DRAFT", "PUBLISHED", "HIDDEN"]);
+
+function slugifyVN(text = "") {
+  return text
+    .toString()
+    .trim()
+    .toLowerCase()
+    // remove Vietnamese accents
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/đ/g, "d")
+    // replace non-alphanumeric with -
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-|-$/g, "");
+}
+
+// ===== API #1: ThemTinTuc =====
+app.post("/api/QuanLyTinTuc/ThemTinTuc", (req, res) => {
+  try {
+    const {
+      title,
+      excerpt = "",
+      content = "",
+      thumbnailUrl = null,
+      coverUrl = null,
+      category = "PROMO",
+      status = "DRAFT",
+      isFeatured = 0,
+      pinOrder = null,
+    } = req.body || {};
+
+    // Validate
+    if (!title || typeof title !== "string" || !title.trim()) {
+      return res.status(400).send({ message: "title là bắt buộc" });
+    }
+    if (!ALLOWED_CATEGORIES.has(category)) {
+      return res.status(400).send({ message: "category không hợp lệ" });
+    }
+    if (!ALLOWED_STATUS.has(status)) {
+      return res.status(400).send({ message: "status không hợp lệ" });
+    }
+
+    const now = new Date();
+    const publishedAt = status === "PUBLISHED" ? now : null;
+
+    // Generate slug
+    let slug = slugifyVN(title);
+    if (!slug) slug = `tin-${Date.now()}`;
+
+    // Ensure unique slug (nếu trùng thì thêm hậu tố)
+    const checkSql = "SELECT id FROM tintuc WHERE slug = ? LIMIT 1";
+    db.query(checkSql, [slug], (checkErr, checkRows) => {
+      if (checkErr) return res.status(500).send(checkErr);
+
+      if (checkRows && checkRows.length > 0) {
+        slug = `${slug}-${Date.now().toString(36)}`; // suffix ngắn để tránh trùng
+      }
+
+      const insertSql = `
+        INSERT INTO tintuc
+          (title, slug, excerpt, content, thumbnailUrl, coverUrl, category, status,
+           isFeatured, pinOrder, viewCount, publishedAt, createdAt, updatedAt)
+        VALUES
+          (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      `;
+
+      const params = [
+        title.trim(),
+        slug,
+        excerpt,
+        content,
+        thumbnailUrl,
+        coverUrl,
+        category,
+        status,
+        Number(isFeatured) ? 1 : 0,
+        pinOrder === null || pinOrder === undefined || pinOrder === "" ? null : Number(pinOrder),
+        0,                 // viewCount default
+        publishedAt,        // publishedAt
+        now,                // createdAt
+        now,                // updatedAt
+      ];
+
+      db.query(insertSql, params, (insErr, insResult) => {
+        if (insErr) return res.status(500).send(insErr);
+
+        return res.send({
+          message: "Tạo tin tức thành công",
+          id: insResult.insertId,
+          slug,
+          status,
+          category,
+        });
+      });
+    });
+  } catch (e) {
+    return res.status(500).send({ message: "Server error", error: String(e) });
+  }
+});
+
+// Quản lý ghế (Seat Layout)
+// Trả về seats: [{ seatIndex, loaiGhe, isActive }]
+app.get('/api/QuanLyGhe/LayDanhSachGhe', async (req, res) => {
+  const maRap = String(req.query.maRap || '').trim();
+  if (!maRap) return res.status(400).json({ message: 'Thiếu maRap' });
+
+  try {
+    const [rows] = await dbConn.promise().query(
+      'SELECT seatIndex, loaiGhe, isActive FROM cinema.ghe WHERE maRap = ? ORDER BY seatIndex ASC',
+      [maRap]
+    );
+    return res.json({ maRap, cols: 16, rows: 10, seats: rows || [] });
+  } catch (e) {
+    // Nếu chưa tạo table cinema.ghe
+    if (String(e?.code || '').includes('ER_NO_SUCH_TABLE')) {
+      return res.json({ maRap, cols: 16, rows: 10, seats: [] });
+    }
+    return res.status(500).json({ message: 'DB error', error: String(e?.message || e) });
+  }
+});
+
+// Admin tạo sơ đồ ghế mặc định cho 1 rạp
+// body: { maRap, rows?:10, cols?:16, vipFrom?:45, vipTo?:89 }
+app.post('/api/QuanLyGhe/Admin/TaoSoDoGheMacDinh', requireAuth, requireAdmin, async (req, res) => {
+  const maRap = String(req.body.maRap || '').trim();
+  if (!maRap) return res.status(400).json({ message: 'Thiếu maRap' });
+
+  const rows = Math.min(Math.max(parseInt(req.body.rows ?? 10, 10), 1), 30);
+  const cols = Math.min(Math.max(parseInt(req.body.cols ?? 16, 10), 1), 30);
+  const total = rows * cols;
+  const vipFrom = Number.isFinite(Number(req.body.vipFrom)) ? Number(req.body.vipFrom) : 45;
+  const vipTo = Number.isFinite(Number(req.body.vipTo)) ? Number(req.body.vipTo) : 89;
+
+  try {
+    // Xóa cũ
+    await dbConn.promise().query('DELETE FROM cinema.ghe WHERE maRap = ?', [maRap]);
+
+    const values = [];
+    for (let i = 0; i < total; i++) {
+      const loaiGhe = (i >= vipFrom && i <= vipTo) ? 'Vip' : 'Thuong';
+      values.push([maRap, i, loaiGhe, 1]);
+    }
+
+    await dbConn.promise().query(
+      'INSERT INTO cinema.ghe (maRap, seatIndex, loaiGhe, isActive) VALUES ?',
+      [values]
+    );
+    return res.json({ message: 'Tạo sơ đồ ghế mặc định thành công', maRap, rows, cols, total });
+  } catch (e) {
+    return res.status(500).json({ message: 'DB error', error: String(e?.message || e) });
+  }
+});
+
+
+// Admin cập nhật sơ đồ ghế
+// body: { maRap, seats: [{ seatIndex, loaiGhe, isActive }] }
+app.put('/api/QuanLyGhe/Admin/CapNhatSoDoGhe', requireAuth, requireAdmin, async (req, res) => {
+  const maRap = String(req.body.maRap || '').trim();
+  const seats = Array.isArray(req.body.seats) ? req.body.seats : [];
+  if (!maRap) return res.status(400).json({ message: 'Thiếu maRap' });
+  if (!seats.length) return res.status(400).json({ message: 'Thiếu seats' });
+
+  try {
+    const values = seats.map(s => {
+      const seatIndex = Number(s.seatIndex);
+      const loaiGhe = (String(s.loaiGhe || 'Thuong') === 'Vip') ? 'Vip' : 'Thuong';
+      const isActive = Number(s.isActive) === 0 ? 0 : 1;
+      return [maRap, seatIndex, loaiGhe, isActive];
+    }).filter(v => Number.isFinite(v[1]));
+
+    if (!values.length) return res.status(400).json({ message: 'Dữ liệu seats không hợp lệ' });
+
+    await dbConn.promise().query(
+      `INSERT INTO cinema.ghe (maRap, seatIndex, loaiGhe, isActive)
+       VALUES ?
+       ON DUPLICATE KEY UPDATE
+         loaiGhe = VALUES(loaiGhe),
+         isActive = VALUES(isActive)`,
+      [values]
+    );
+
+    return res.json({ message: 'Cập nhật sơ đồ ghế thành công', maRap, updated: values.length });
+  } catch (e) {
+    return res.status(500).json({ message: 'DB error', error: String(e?.message || e) });
+  }
+});
+
+function requireAuth(req, res, next) {
+  try {
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) return res.status(401).json({ message: "Thiếu token" });
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    req.user = decoded;
+    next();
+  } catch (err) {
+    return res.status(401).json({ message: "Token không hợp lệ", error: String(err?.message || err) });
+  }
+}
+
+function requireAdmin(req, res, next) {
+  if (req.user?.maLoaiNguoiDung !== "QuanTri") {
+    return res.status(403).json({ message: "Không có quyền admin" });
+  }
+  next();
+}
+
+app.get("/api/QuanLyTinTuc/Admin/LayDanhSachTinTuc", requireAuth, requireAdmin, (req, res) => {
+  const status = (req.query.status || "ALL").trim();     // ALL | DRAFT | PUBLISHED | HIDDEN
+  const category = (req.query.category || "ALL").trim(); // ALL | PROMO | SIDELINE | EVENT | RECRUIT
+  const q = (req.query.q || "").trim();
+  const page = Math.max(parseInt(req.query.page || "1", 10), 1);
+  const pageSize = Math.min(Math.max(parseInt(req.query.pageSize || "10", 10), 1), 50);
+  const offset = (page - 1) * pageSize;
+
+  const where = [];
+  const params = [];
+
+  if (status !== "ALL") { where.push("status=?"); params.push(status); }
+  if (category !== "ALL") { where.push("category=?"); params.push(category); }
+  if (q) {
+    where.push("(title LIKE ? OR excerpt LIKE ? OR slug LIKE ?)");
+    params.push(`%${q}%`, `%${q}%`, `%${q}%`);
+  }
+
+  const whereSql = where.length ? `WHERE ${where.join(" AND ")}` : "";
+
+  const countSql = `SELECT COUNT(*) as total FROM tintuc ${whereSql}`;
+  const sql = `
+    SELECT id,title,slug,excerpt,thumbnailUrl,coverUrl,category,status,isFeatured,pinOrder,viewCount,
+           publishedAt,createdAt,updatedAt
+    FROM tintuc
+    ${whereSql}
+    ORDER BY updatedAt DESC
+    LIMIT ? OFFSET ?
+  `;
+
+  db.query(countSql, params, (e1, c) => {
+    if (e1) return res.status(500).json({ message: "DB error", error: e1 });
+    db.query(sql, [...params, pageSize, offset], (e2, rows) => {
+      if (e2) return res.status(500).json({ message: "DB error", error: e2 });
+      res.json({ page, pageSize, total: c?.[0]?.total || 0, items: rows });
+    });
+  });
+});
+
+app.get("/api/QuanLyTinTuc/LayChiTietTinTuc", (req, res) => {
+  const id = req.query.id ? Number(req.query.id) : null;
+  const slug = (req.query.slug || "").trim();
+  const preview = req.query.preview;
+
+  if (!id && !slug) return res.status(400).json({ message: "Thiếu id hoặc slug" });
+
+  const isPreview = String(preview) === "1";
+
+  const authHeader = req.headers.authorization || "";
+  const token = authHeader.startsWith("Bearer ") ? authHeader.slice(7) : null;
+
+  const runQuery = (allowAllStatus) => {
+    const whereStatus = allowAllStatus ? "" : " AND status='PUBLISHED'";
+    const whereKey = id ? "id=?" : "slug=?";
+    const whereVal = id ? id : slug;
+
+    db.query(
+      `SELECT * FROM tintuc WHERE ${whereKey} ${whereStatus} LIMIT 1`,
+      [whereVal],
+      (err, rows) => {
+        if (err) return res.status(500).json({ message: "DB error", error: err });
+        if (!rows || rows.length === 0) return res.status(404).json({ message: "Không tìm thấy bài viết" });
+
+        const item = rows[0];
+
+        const finish = () => {
+          db.query(
+            `SELECT id,title,slug,thumbnailUrl,coverUrl,publishedAt
+             FROM tintuc
+             WHERE status='PUBLISHED' AND category=? AND id<>?
+             ORDER BY publishedAt DESC
+             LIMIT 6`,
+            [item.category, item.id],
+            (e2, relatedRows) => {
+              if (e2) return res.json({ item, related: [] });
+              return res.json({ item, related: relatedRows || [] });
+            }
+          );
+        };
+
+        // Public mới tăng viewCount
+        if (!allowAllStatus) {
+          db.query("UPDATE tintuc SET viewCount=viewCount+1 WHERE id=?", [item.id], () => finish());
+        } else {
+          finish();
+        }
+      }
+    );
+  };
+
+  // Không preview => public
+  if (!isPreview) return runQuery(false);
+
+  // preview=1 => chỉ admin
+  if (!token) return res.status(401).json({ message: "Thiếu token preview" });
+
+  try {
+    // QUAN TRỌNG: đồng bộ secret với requireAuth
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+
+    if (decoded?.maLoaiNguoiDung !== "QuanTri") {
+      return res.status(403).json({ message: "Không có quyền preview" });
+    }
+    return runQuery(true);
+  } catch (e) {
+    return res.status(401).json({ message: "Token không hợp lệ" });
+  }
+});
+
+
+// ======================
+// ADMIN: Xóa tin tức
+// DELETE /api/QuanLyTinTuc/Admin/XoaTinTuc?slug=abc
+// hoặc DELETE /api/QuanLyTinTuc/Admin/XoaTinTuc?id=123
+// ======================
+app.delete("/api/QuanLyTinTuc/Admin/XoaTinTuc", requireAuth, requireAdmin, (req, res) => {
+  try {
+    const slug = (req.query.slug || "").trim();
+    const id = req.query.id ? Number(req.query.id) : null;
+
+    if (!slug && !id) {
+      return res.status(400).json({ message: "Thiếu slug hoặc id" });
+    }
+
+    const whereSql = id ? "id=?" : "slug=?";
+    const whereVal = id ? id : slug;
+
+    // check tồn tại
+    db.query(`SELECT id, slug FROM tintuc WHERE ${whereSql} LIMIT 1`, [whereVal], (e1, rows) => {
+      if (e1) return res.status(500).json({ message: "DB error", error: e1 });
+      if (!rows || rows.length === 0) return res.status(404).json({ message: "Không tìm thấy bài viết" });
+
+      const found = rows[0];
+
+      // xóa
+      db.query(`DELETE FROM tintuc WHERE ${whereSql}`, [whereVal], (e2) => {
+        if (e2) return res.status(500).json({ message: "DB error", error: e2 });
+
+        return res.json({
+          message: "Xóa tin tức thành công",
+          deleted: { id: found.id, slug: found.slug },
+        });
+      });
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Server error", error: String(err?.message || err) });
+  }
+});
+
+// (OPTIONAL) Nếu bạn muốn Postman dễ test (một số nơi không cho DELETE), thêm luôn POST alias:
+app.post("/api/QuanLyTinTuc/Admin/XoaTinTuc", requireAuth, requireAdmin, (req, res) => {
+  // cho phép gửi slug/id qua body hoặc query
+  req.query.slug = req.query.slug || req.body?.slug;
+  req.query.id = req.query.id || req.body?.id;
+  return app._router.handle(req, res, () => {}, "delete");
+});
+
+function normalizeNullable(v) {
+  if (v === undefined) return undefined;
+  if (v === null) return null;
+  const s = String(v).trim();
+  return s === "" ? null : v;
+}
+
+function updateTinTucHandler(req, res) {
+  try {
+    const id = req.query.id ? Number(req.query.id) : null;
+    const slug = (req.query.slug || "").trim();
+
+    if (!id && !slug) return res.status(400).json({ message: "Thiếu id hoặc slug" });
+
+    const whereKey = id ? "id=?" : "slug=?";
+    const whereVal = id ? id : slug;
+
+    db.query(`SELECT * FROM tintuc WHERE ${whereKey} LIMIT 1`, [whereVal], (e1, rows) => {
+      if (e1) return res.status(500).json({ message: "DB error", error: e1 });
+      if (!rows || rows.length === 0) return res.status(404).json({ message: "Không tìm thấy bài viết" });
+
+      const old = rows[0];
+      const body = req.body || {};
+
+      // giữ nguyên nếu không truyền lên
+      const nextTitle = body.title !== undefined ? String(body.title).trim() : old.title;
+      const nextExcerpt = body.excerpt !== undefined ? String(body.excerpt) : old.excerpt;
+      const nextContent = body.content !== undefined ? String(body.content) : old.content;
+
+      const nextThumbnailUrl =
+        body.thumbnailUrl !== undefined ? normalizeNullable(body.thumbnailUrl) : old.thumbnailUrl;
+
+      const nextCoverUrl =
+        body.coverUrl !== undefined ? normalizeNullable(body.coverUrl) : old.coverUrl;
+
+      const nextCategory = body.category !== undefined ? String(body.category).trim() : old.category;
+      const nextStatus = body.status !== undefined ? String(body.status).trim() : old.status;
+
+      const nextIsFeatured =
+        body.isFeatured !== undefined ? (Number(body.isFeatured) ? 1 : 0) : old.isFeatured;
+
+      const nextPinOrder =
+        body.pinOrder !== undefined
+          ? (body.pinOrder === null || body.pinOrder === "" ? null : Number(body.pinOrder))
+          : old.pinOrder;
+
+      if (!nextTitle) return res.status(400).json({ message: "title là bắt buộc" });
+      if (!ALLOWED_CATEGORIES.has(nextCategory)) return res.status(400).json({ message: "category không hợp lệ" });
+      if (!ALLOWED_STATUS.has(nextStatus)) return res.status(400).json({ message: "status không hợp lệ" });
+
+      // slug: mặc định KHÔNG đổi (để khỏi gãy link). Chỉ đổi khi bạn truyền body.slug
+      let nextSlug = old.slug;
+      if (body.slug !== undefined) {
+        nextSlug = slugifyVN(String(body.slug));
+        if (!nextSlug) nextSlug = `tin-${Date.now()}`;
+      }
+
+      const now = new Date();
+
+      // publishedAt logic
+      let nextPublishedAt = old.publishedAt;
+      if (nextStatus === "PUBLISHED") {
+        if (!nextPublishedAt) nextPublishedAt = now;
+      } else {
+        nextPublishedAt = null;
+      }
+
+      const doUpdate = () => {
+        const updateSql = `
+          UPDATE tintuc
+          SET title=?,
+              slug=?,
+              excerpt=?,
+              content=?,
+              thumbnailUrl=?,
+              coverUrl=?,
+              category=?,
+              status=?,
+              isFeatured=?,
+              pinOrder=?,
+              publishedAt=?,
+              updatedAt=?
+          WHERE id=?
+        `;
+
+        const params = [
+          nextTitle,
+          nextSlug,
+          nextExcerpt,
+          nextContent,
+          nextThumbnailUrl,
+          nextCoverUrl,
+          nextCategory,
+          nextStatus,
+          nextIsFeatured,
+          nextPinOrder,
+          nextPublishedAt,
+          now,
+          old.id,
+        ];
+
+        db.query(updateSql, params, (e3) => {
+          if (e3) return res.status(500).json({ message: "DB error", error: e3 });
+
+          return res.json({
+            message: "Cập nhật tin tức thành công",
+            item: {
+              id: old.id,
+              slug: nextSlug,
+              title: nextTitle,
+              category: nextCategory,
+              status: nextStatus,
+              isFeatured: nextIsFeatured,
+              pinOrder: nextPinOrder,
+              thumbnailUrl: nextThumbnailUrl,
+              coverUrl: nextCoverUrl,
+              publishedAt: nextPublishedAt,
+              updatedAt: now,
+            },
+          });
+        });
+      };
+
+      // Nếu đổi slug thì check trùng
+      if (nextSlug !== old.slug) {
+        db.query(
+          "SELECT id FROM tintuc WHERE slug=? AND id<>? LIMIT 1",
+          [nextSlug, old.id],
+          (e2, exist) => {
+            if (e2) return res.status(500).json({ message: "DB error", error: e2 });
+            if (exist && exist.length > 0) {
+              nextSlug = `${nextSlug}-${Date.now().toString(36)}`;
+            }
+            doUpdate();
+          }
+        );
+      } else {
+        doUpdate();
+      }
+    });
+  } catch (err) {
+    return res.status(500).json({ message: "Server error", error: String(err?.message || err) });
+  }
+}
+
+app.put("/api/QuanLyTinTuc/Admin/CapNhatTinTuc", requireAuth, requireAdmin, (req, res) => {
+  const { id, slug } = req.query;
+  if (!id && !slug) return res.status(400).json({ message: "Thiếu id hoặc slug" });
+
+  const findSql = id
+    ? "SELECT * FROM tintuc WHERE id=? LIMIT 1"
+    : "SELECT * FROM tintuc WHERE slug=? LIMIT 1";
+  const findParams = [id ? Number(id) : slug];
+
+  db.query(findSql, findParams, (e0, rows) => {
+    if (e0) return res.status(500).json({ message: "DB error", error: e0 });
+    if (!rows || rows.length === 0) return res.status(404).json({ message: "Không tìm thấy bài viết" });
+
+    const current = rows[0];
+
+    const {
+      title,
+      excerpt,
+      content,
+      thumbnailUrl,
+      coverUrl,
+      category,
+      status,
+      isFeatured,
+      pinOrder,
+    } = req.body || {};
+
+    // lấy giá trị mới (nếu không gửi thì giữ nguyên)
+    const nextTitle = (title ?? current.title)?.toString();
+    const nextExcerpt = excerpt ?? current.excerpt;
+    const nextContent = content ?? current.content;
+    const nextThumb = thumbnailUrl ?? current.thumbnailUrl;
+    const nextCover = coverUrl ?? current.coverUrl;
+    const nextCategory = (category ?? current.category)?.toString();
+    const nextStatus = (status ?? current.status)?.toString();
+
+    if (!nextTitle || !nextTitle.trim()) {
+      return res.status(400).json({ message: "title là bắt buộc" });
+    }
+    if (!ALLOWED_CATEGORIES.has(nextCategory)) {
+      return res.status(400).json({ message: "category không hợp lệ" });
+    }
+    if (!ALLOWED_STATUS.has(nextStatus)) {
+      return res.status(400).json({ message: "status không hợp lệ" });
+    }
+
+    const now = new Date();
+
+    // publishedAt: nếu chuyển sang PUBLISHED mà trước đó null thì set now
+    // nếu không phải PUBLISHED thì set null
+    let nextPublishedAt = current.publishedAt;
+    if (nextStatus === "PUBLISHED") {
+      if (!current.publishedAt) nextPublishedAt = now;
+    } else {
+      nextPublishedAt = null;
+    }
+
+    const nextIsFeatured =
+      isFeatured === undefined || isFeatured === null ? current.isFeatured : (Number(isFeatured) ? 1 : 0);
+
+    const nextPinOrder =
+      pinOrder === undefined || pinOrder === null || pinOrder === ""
+        ? current.pinOrder
+        : Number(pinOrder);
+
+    const updateSql = `
+      UPDATE tintuc
+      SET title=?, excerpt=?, content=?, thumbnailUrl=?, coverUrl=?,
+          category=?, status=?, isFeatured=?, pinOrder=?, publishedAt=?, updatedAt=?
+      WHERE id=?
+    `;
+
+    db.query(
+      updateSql,
+      [
+        nextTitle.trim(),
+        nextExcerpt,
+        nextContent,
+        nextThumb,
+        nextCover,
+        nextCategory,
+        nextStatus,
+        nextIsFeatured,
+        nextPinOrder,
+        nextPublishedAt,
+        now,
+        current.id,
+      ],
+      (e1) => {
+        if (e1) return res.status(500).json({ message: "DB error", error: e1 });
+        return res.json({ message: "Cập nhật tin tức thành công", id: current.id, slug: current.slug });
+      }
+    );
+  });
+});
+
+app.get('/api/QuanLyTinTuc/Admin/LayChiTietTinTuc', requireAuth, requireAdmin, async (req, res) => {
+  try {
+    const { id, slug } = req.query;
+    if (!id && !slug) return res.status(400).json({ message: 'Thiếu id hoặc slug' });
+
+    const where = id ? 'id = ?' : 'slug = ?';
+    const value = id ? id : slug;
+
+    const [rows] = await db.query(`SELECT * FROM tintuc WHERE ${where} LIMIT 1`, [value]);
+    if (!rows || rows.length === 0) return res.status(404).json({ message: 'Không tìm thấy bài viết' });
+
+    return res.json({ data: rows[0] });
+  } catch (e) {
+    console.error(e);
+    return res.status(500).json({ message: 'Lỗi máy chủ' });
+  }
+});
+
+
+
+app.listen(PORT, () => console.log(`✅ Server đang chạy tại http://localhost:${PORT}`));

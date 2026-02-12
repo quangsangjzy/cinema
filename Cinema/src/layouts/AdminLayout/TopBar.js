@@ -39,7 +39,7 @@ const TopBar = ({
     >
       <Toolbar>
         <div onClick={handleClickLogo} style={{ cursor: "pointer" }}>
-          <img src="https://t3.ftcdn.net/jpg/04/66/39/50/360_F_466395040_mj2YjwJe0qLlRXQk51kg0q8Jw9AwJp5r.jpg" alt="logo" style={{ height: 50 }} />
+          <img src="/img/logo.png" alt="logo" style={{ height: 50 }} />
         </div>
         <Box flexGrow={1} />
         <Hidden mdDown>

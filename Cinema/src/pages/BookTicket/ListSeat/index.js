@@ -50,7 +50,7 @@ export default function ListSeat() {
     };
 
     const handleSelectedSeat = (seatSelected) => {
-        if (seatSelected.daDat) {
+        if (seatSelected.daDat || Number(seatSelected.isActive) !== 1) {
             return;
         }
         let newListSeat = listSeat.map((seat) => {
@@ -102,6 +102,10 @@ export default function ListSeat() {
     };
     const color = (seat) => {
         let color;
+        if (Number(seat.isActive) !== 1) {
+            color = "#9e9e9e";
+            return color;
+        }
         if (seat.loaiGhe === "Thuong") {
             color = "#3e515d";
         }
@@ -192,7 +196,7 @@ export default function ListSeat() {
                                             : seat.label.slice(1)}
                                     </p>
                                 )}
-                                {seat.daDat && (
+                                {(seat.daDat || Number(seat.isActive) !== 1) && (
                                     <img
                                         className={classes.seatLocked}
                                         src="/img/BookTicket/notchoose.png"
