@@ -8,6 +8,9 @@ import CircularProgress from "@material-ui/core/CircularProgress";
 import SearchIcon from "@material-ui/icons/Search";
 import InputBase from "@material-ui/core/InputBase";
 import Dialog from "@material-ui/core/Dialog";
+import DialogActions from "@material-ui/core/DialogActions";
+import MuiDialogTitle from "@material-ui/core/DialogTitle";
+import MuiDialogContent from "@material-ui/core/DialogContent";
 import AddBoxIcon from "@material-ui/icons/AddBox";
 import RenderCellExpand from "./RenderCellExpand";
 import slugify from "slugify";
@@ -59,8 +62,14 @@ export default function MoviesManagement() {
     const callApiChangeImageSuccess = useRef(false);
     const [valueSearch, setValueSearch] = useState("");
     const clearSetSearch = useRef(0);
-    const [openModal, setOpenModal] = React.useState(false);
+        const [openModal, setOpenModal] = React.useState(false);
     const selectedPhim = useRef(null);
+    // Dialog xác nhận xóa
+    const [deleteDialog, setDeleteDialog] = useState({
+        open: false,
+        maPhim: null,
+        tenPhim: "",
+    });
     const isMobile = useMediaQuery("(max-width:768px)");
     useEffect(() => {
         if (
@@ -144,10 +153,22 @@ export default function MoviesManagement() {
             enqueueSnackbar(errorAddUploadMovie, { variant: "error" });
         }
     }, [successAddUploadMovie, errorAddUploadMovie]);
-    const handleDeleteOne = (maPhim) => {
-        if (!loadingDeleteMovie) {
-            dispatch(deleteMovie(maPhim));
-        }
+    const openDeleteDialog = (movie) => {
+        if (!movie?.maPhim) return;
+        setDeleteDialog({
+            open: true,
+            maPhim: movie.maPhim,
+            tenPhim: movie.tenPhim || "",
+        });
+    };
+    const closeDeleteDialog = () => {
+        setDeleteDialog((prev) => ({ ...prev, open: false }));
+    };
+    const confirmDeleteDialog = () => {
+        if (!deleteDialog.maPhim) return;
+        if (loadingDeleteMovie) return;
+        dispatch(deleteMovie(deleteDialog.maPhim));
+        closeDeleteDialog();
     };
     const handleEdit = (phimItem) => {
         selectedPhim.current = phimItem;
@@ -270,7 +291,7 @@ export default function MoviesManagement() {
             renderCell: (params) => (
                 <Action
                     onEdit={handleEdit}
-                    onDeleted={handleDeleteOne}
+                    onRequestDelete={openDeleteDialog}
                     phimItem={params.row}
                 />
             ),
@@ -333,6 +354,21 @@ export default function MoviesManagement() {
                 }}
                 sortModel={[{ field: "tenPhim", sort: "asc" }]}
             />
+            <Dialog open={deleteDialog.open} onClose={closeDeleteDialog}>
+                <MuiDialogTitle>Xác nhận xóa phim</MuiDialogTitle>
+                <MuiDialogContent>
+                    Bạn có chắc chắn muốn xóa phim <b>{deleteDialog.tenPhim}</b> (Mã: <b>{deleteDialog.maPhim}</b>) không?
+                </MuiDialogContent>
+                <DialogActions>
+                    <Button onClick={closeDeleteDialog} variant="outlined">
+                        Không
+                    </Button>
+                    <Button onClick={confirmDeleteDialog} variant="contained" color="secondary">
+                        Có, xóa
+                    </Button>
+                </DialogActions>
+            </Dialog>
+
             <Dialog open={openModal}>
                 <DialogTitle onClose={() => setOpenModal(false)}>
                     {selectedPhim?.current?.tenPhim

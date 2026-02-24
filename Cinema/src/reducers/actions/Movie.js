@@ -85,8 +85,6 @@ export const deleteMovie = (maPhim) => {
                     type: DELETE_MOVIE_SUCCESS,
                     payload: { data: result.data },
                 });
-
-                window.location.reload();
             })
             .catch((error) => {
                 const message = error?.response?.data

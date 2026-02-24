@@ -5,11 +5,8 @@ import IconButton from '@material-ui/core/IconButton';
 import DeleteForeverIcon from '@material-ui/icons/DeleteForever';
 import Tooltip from '@material-ui/core/Tooltip';
 
-import UseApiCheckIsMaPhimSetShowtime from '../../utilities/useApiCheckIsMaPhimSetShowtime';
-
 export default function ButtonDelete({ onDeleted, phimItem, onEdit }) {
     console.log();
-    const isMovieSetShowtime = UseApiCheckIsMaPhimSetShowtime(phimItem)
     return (
         <>
             <Tooltip title={ "Xóa"}>
