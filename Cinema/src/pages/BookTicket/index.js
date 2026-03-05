@@ -19,6 +19,7 @@ export default function Index() {
   const {
     loadingGetListSeat,
     timeOut,
+    listSeat,
     danhSachPhongVe: { thongTinPhim, danhSachGhe },
     errorGetListSeatMessage,
   } = useSelector((state) => state.BookTicketReducer);
@@ -35,29 +36,56 @@ export default function Index() {
   }, []);
   useEffect(() => {
     let initCode = 64;
+
+    // ✅ giữ lại ghế đang selected trước đó
+    const selectedSet = new Set((listSeat || []).filter(s => s.selected).map(s => s.maGhe));
+
     const danhSachGheEdit = danhSachGhe?.map((seat, i) => {
       if (i % 16 === 0) initCode++;
       const txt = String.fromCharCode(initCode);
       const number = ((i % 16) + 1).toString().padStart(2, 0);
-      return { ...seat, label: txt + number, selected: false };
+
+      return {
+        ...seat,
+        label: txt + number,
+        selected: selectedSet.has(seat.maGhe), // ✅ giữ lại trạng thái chọn
+      };
     });
+
     dispatch({
       type: INIT_DATA,
       payload: {
         listSeat: danhSachGheEdit,
         maLichChieu: thongTinPhim?.maLichChieu,
         taiKhoanNguoiDung: currentUser?.taiKhoan,
-        email: currentUser?.email,
-        phone: currentUser?.soDT,
+        email: "",
+        phone: "",
       },
     });
-  }, [danhSachGhe, currentUser, timeOut]);
+
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [danhSachGhe]);
   useEffect(() => {
     dispatch({ type: SET_ISMOBILE, payload: { isMobile: mediaQuery } });
   }, [mediaQuery]);
 
   if (errorGetListSeatMessage) {
-    return <div>{errorGetListSeatMessage}</div>;
+    const msg =
+      typeof errorGetListSeatMessage === "string"
+        ? errorGetListSeatMessage
+        : errorGetListSeatMessage.message || "Có lỗi khi tải danh sách ghế.";
+    const isExpired =
+      typeof errorGetListSeatMessage === "object" && !!errorGetListSeatMessage.expired;
+
+    return (
+      <div style={{ padding: 24, color: "white" }}>
+        <h3>{isExpired ? "Lịch chiếu đã kết thúc" : "Không tải được phòng vé"}</h3>
+        <p>{msg}</p>
+        <a href="/lichchieu" style={{ color: "#ff9800" }}>
+          Quay lại trang Lịch chiếu
+        </a>
+      </div>
+    );
   }
   return (
     <div style={{ display: loading ? "none" : "block" }}>

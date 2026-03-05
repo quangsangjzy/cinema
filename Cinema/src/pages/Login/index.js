@@ -19,16 +19,13 @@ export default function Login() {
     const isDesktop = useMediaQuery(theme.breakpoints.up("md"));
     useEffect(() => {
         if (currentUser) {
-            if (location.state === "/") {
-                dispatch({ type: LOADING_BACKTO_HOME });
-                setTimeout(() => {
-                    history.push("/");
-                }, 50);
-                return undefined;
-            }
-            history.push(location.state);
+            const redirectTo =
+                typeof location.state === "string" && location.state
+                    ? location.state
+                    : "/";
+            history.push(redirectTo);
         }
-    }, [currentUser]);
+    }, [currentUser, location.state]);
     useEffect(() => {
         return () => {
             dispatch(resetErrorLoginRegister());

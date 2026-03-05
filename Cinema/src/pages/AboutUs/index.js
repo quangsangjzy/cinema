@@ -24,7 +24,7 @@ export default function Aboutus() {
           <h1 className="about-title">Về chúng tôi</h1>
           <p className="about-subtitle">
             Nền tảng đặt vé xem phim trực tuyến: chọn suất chiếu, chọn ghế, thanh
-            toán VNPay, nhận vé &amp; email xác nhận — nhanh, tiện và an toàn.
+            toán, nhận vé &amp; email xác nhận — nhanh, tiện và an toàn.
           </p>
 
           <div className="about-cta">

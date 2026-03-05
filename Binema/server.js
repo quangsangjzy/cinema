@@ -9,28 +9,38 @@ const jwt = require("jsonwebtoken");
 const { application } = require("express");
 var nodemailer = require("nodemailer");
 const path = require("path");
+const PayOSModule = require("@payos/node");
+const PayOS = PayOSModule.PayOS || PayOSModule;
 
 let $ = require("jquery");
 const request = require("request");
 const moment = require("moment");
 dotenv.config();
 
-// payOS (SDK hiện tại dùng ESM, nên mình hỗ trợ cả require + dynamic import)
-let PayOS;
-async function getPayOSClass() {
-  if (PayOS) return PayOS;
+const payos = new PayOS(
+  process.env.PAYOS_CLIENT_ID,
+  process.env.PAYOS_API_KEY,
+  process.env.PAYOS_CHECKSUM_KEY
+);
 
-  try {
-    ({ PayOS } = require("@payos/node"));
-    return PayOS;
-  } catch (e) {
-    // fallback sang import()
-  }
+const WEB_URL = process.env.PUBLIC_WEB_URL || "http://localhost:3000";
 
-  const mod = await import("@payos/node");
-  PayOS = mod.PayOS || (mod.default && mod.default.PayOS);
-  return PayOS;
-}
+// // payOS (SDK hiện tại dùng ESM, nên mình hỗ trợ cả require + dynamic import)
+// let PayOS;
+// async function getPayOSClass() {
+//   if (PayOS) return PayOS;
+
+//   try {
+//     ({ PayOS } = require("@payos/node"));
+//     return PayOS;
+//   } catch (e) {
+//     // fallback sang import()
+//   }
+
+//   const mod = await import("@payos/node");
+//   PayOS = mod.PayOS || (mod.default && mod.default.PayOS);
+//   return PayOS;
+// }
 
 app.use(cors());
 app.set("etag", false);
@@ -88,9 +98,21 @@ const PUBLIC_BASE_URL =
 app.set("trust proxy", true);
 function absUrl(p) {
   if (!p) return null;
-  if (/^https?:\/\//i.test(p)) return p;
-  const rel = p.startsWith("/") ? p : `/${p}`;
-  //   console.log("👉 PUBLIC_BASE_URL =", PUBLIC_BASE_URL); // Thêm dòng này
+  const s = String(p).trim();
+
+  // ✅ data/blob URI (base64 preview) dùng trực tiếp, không prefix host
+  if (/^(data:|blob:)/i.test(s)) return s;
+
+  // ✅ URL tuyệt đối (Cloudinary/HTTP) dùng trực tiếp
+  if (/^https?:\/\//i.test(s)) return s;
+  const assetBase = (process.env.ASSET_BASE_URL || "").replace(/\/$/, "");
+  if (assetBase && !/[<>]/.test(assetBase)) {
+    const rel = s.replace(/^\/+/, "");
+    return `${assetBase}/${rel}`;
+  }
+
+  // ✅ fallback: ghép bằng public base của server
+  const rel = s.startsWith("/") ? s : `/${s}`;
   return `${PUBLIC_BASE_URL}${rel}`;
 }
 app.get("/", (req, res) => res.send("API đang chạy..."));
@@ -128,32 +150,19 @@ const validateToken = (req, res) => {
 };
 // VNPay
 // Thanh toán (payOS)
+// Thanh toán (payOS)
 app.get("/api/create_payment_url", async function (req, res) {
   try {
-    const PayOSClass = await getPayOSClass();
-    if (!PayOSClass) {
-      return res.status(500).json({
-        message:
-          "Thiếu thư viện payOS. Hãy chạy: npm i @payos/node (trong thư mục Binema)",
-      });
-    }
-
     const { amount, maLichChieu, taiKhoanNguoiDung } = req.query;
     const totalAmount = Number(amount || 0);
 
-    if (
-      !maLichChieu ||
-      !taiKhoanNguoiDung ||
-      !Number.isFinite(totalAmount) ||
-      totalAmount <= 0
-    ) {
+    if (!maLichChieu || !taiKhoanNguoiDung || !Number.isFinite(totalAmount) || totalAmount <= 0) {
       return res.status(400).json({
-        message:
-          "Thiếu hoặc sai tham số: amount, maLichChieu, taiKhoanNguoiDung",
+        message: "Thiếu hoặc sai tham số: amount, maLichChieu, taiKhoanNguoiDung",
       });
     }
 
-    // Lấy danh sách vé từ query dạng danhSachVe[0], danhSachVe[1]...
+    // Lấy danhSachVe từ query dạng danhSachVe[0], danhSachVe[1]...
     const seats = Object.keys(req.query)
       .filter((k) => k.startsWith("danhSachVe["))
       .sort((a, b) => {
@@ -163,36 +172,28 @@ app.get("/api/create_payment_url", async function (req, res) {
       })
       .map((k) => {
         const raw = req.query[k];
-        if (typeof raw === "string") {
-          try {
-            return JSON.parse(raw);
-          } catch {
-            return { tenDayDu: String(raw), giaVe: 0 };
-          }
+        try {
+          return typeof raw === "string" ? JSON.parse(raw) : raw;
+        } catch {
+          return { tenDayDu: String(raw), giaVe: 0 };
         }
-        return raw;
       })
       .filter(Boolean);
 
-    const PUBLIC_WEB_URL = (
-      process.env.PUBLIC_WEB_URL || "http://localhost:3000"
-    ).replace(/\/$/, "");
-    const returnUrl = `${PUBLIC_WEB_URL}/datve/${maLichChieu}`;
-    const cancelUrl = `${PUBLIC_WEB_URL}/datve/${maLichChieu}`;
+    const PUBLIC_WEB_URL = (process.env.PUBLIC_WEB_URL || "http://localhost:3000").replace(/\/$/, "");
 
-    // orderCode bắt buộc là number
+    // ✅ orderCode phải là number
     const orderCode = Number(String(Date.now()).slice(-9));
 
-    const payOS = new PayOSClass({
-      clientId: process.env.PAYOS_CLIENT_ID,
-      apiKey: process.env.PAYOS_API_KEY,
-      checksumKey: process.env.PAYOS_CHECKSUM_KEY,
-    });
+    // ✅ return/cancel URL PHẢI có payos=1&orderCode=... để FE verify và tự DatVe
+    const returnUrl = `${PUBLIC_WEB_URL}/datve/${maLichChieu}?payos=1&orderCode=${orderCode}`;
+    const cancelUrl = `${PUBLIC_WEB_URL}/datve/${maLichChieu}?payos=1&orderCode=${orderCode}&cancel=1`;
 
-    const items = (
-      seats.length ? seats : [{ tenDayDu: "Vé phim", giaVe: totalAmount }]
-    ).map((s) => ({
-      name: `Ghế ${s.tenDayDu || s.maGhe || ""}`.trim(),
+    // ✅ QR/link hết hạn 15 phút
+    const expiredAt = Math.floor(Date.now() / 1000) + 15 * 60;
+
+    const items = (seats.length ? seats : [{ tenDayDu: "Ve phim", giaVe: totalAmount }]).map((s) => ({
+      name: `Ghe ${s.tenDayDu || s.maGhe || ""}`.trim(),
       quantity: 1,
       price: Number(s.giaVe || 0),
     }));
@@ -200,15 +201,24 @@ app.get("/api/create_payment_url", async function (req, res) {
     const paymentData = {
       orderCode,
       amount: totalAmount,
-      description: `Thanh toán vé (${maLichChieu})`,
+      // PayOS thường giới hạn mô tả ~ 25 ký tự => cắt ngắn cho chắc
+      description: `TT ve ${maLichChieu}`.slice(0, 25),
       items,
       cancelUrl,
       returnUrl,
+      expiredAt,
     };
 
-    // SDK dùng paymentRequests.create để tạo link thanh toán
-    const paymentLink = await payOS.paymentRequests.create(paymentData);
-    return res.send(paymentLink.checkoutUrl);
+    // ✅ dùng đúng instance payos bạn đã tạo ở đầu file: const payos = new PayOS(...)
+    const paymentLink = await payos.createPaymentLink(paymentData);
+
+    // ✅ TRẢ OBJECT để FE lấy checkoutUrl + orderCode
+    return res.json({
+      orderCode,
+      checkoutUrl: paymentLink.checkoutUrl,
+      qrCode: paymentLink.qrCode,
+      expiredAt,
+    });
   } catch (error) {
     console.error("[payOS] create_payment_url error:", error);
     return res.status(500).json({
@@ -492,10 +502,13 @@ app.get("/api/QuanLyRap/LayThongTinTheLoaiPhim", function (req, res) {
 
 app.post("/api/QuanLyRap/AddTheLoaiPhim", function (req, res) {
   dbConn.query(
-    "INSERT INTO cinema.theloaiphim (name) VALUES(?)",
+    "INSERT INTO cinema.theloaiphim (tenTheLoai) VALUES(?)",
     [req.body.tenTheLoai],
     function (error, results, fields) {
-      if (error) throw error;
+      if (error) {
+        console.error("AddTheLoaiPhim error:", error);
+        return res.status(500).send("Lỗi khi thêm thể loại phim");
+      }
       return res.send(results);
     },
   );
@@ -513,16 +526,41 @@ app.put("/api/QuanLyRap/UpdateTheLoaiPhim", function (req, res) {
 });
 
 app.post("/api/QuanLyRap/DeleteTheLoaiPhim", function (req, res) {
+  const id = req.body?.id;
+  if (!id) return res.status(400).send("Thiếu id thể loại phim");
+
   dbConn.query(
-    "DELETE FROM cinema.theloaiphim WHERE id=?",
-    [req.body.id],
-    function (error, results, fields) {
-      if (error) throw error;
-      return res.send(results);
+    "SELECT COUNT(*) AS cnt FROM phiminsert WHERE maTheLoaiPhim = ?",
+    [id],
+    function (error, rows) {
+      if (error) {
+        console.error("DeleteTheLoaiPhim check error:", error);
+        return res.status(500).send("Lỗi khi kiểm tra phim thuộc thể loại");
+      }
+
+      const cnt = rows?.[0]?.cnt || 0;
+      if (cnt > 0) {
+        return res
+          .status(400)
+          .send(
+            `Không thể xóa thể loại vì còn ${cnt} phim đang thuộc thể loại này. Vui lòng đổi thể loại cho các phim trước.`,
+          );
+      }
+
+      dbConn.query(
+        "DELETE FROM cinema.theloaiphim WHERE id=?",
+        [id],
+        function (error2, results) {
+          if (error2) {
+            console.error("DeleteTheLoaiPhim delete error:", error2);
+            return res.status(500).send("Lỗi khi xóa thể loại phim");
+          }
+          return res.send(results);
+        },
+      );
     },
   );
 });
-
 app.get("/api/QuanLyRap/LayThongTinLichChieuHeThongRap", function (req, res) {
   const final = [];
   dbConn.query(
@@ -632,9 +670,14 @@ app.get("/api/QuanLyRap/LayThongTinLichChieuPhim", async (req, res) => {
     if (!maPhim) return res.status(400).json({ message: "Thiếu MaPhim" });
 
     // ✅ Luôn lấy thông tin phim trước (không phụ thuộc lịch chiếu)
-    const [phimRows] = await dbConn
-      .promise()
-      .query("SELECT * FROM phiminsert WHERE maPhim = ? LIMIT 1", [maPhim]);
+    const [phimRows] = await dbConn.promise().query(
+      `SELECT p.*, tl.tenTheLoai
+       FROM phiminsert p
+       LEFT JOIN theloaiphim tl ON p.maTheLoaiPhim = tl.id
+       WHERE p.maPhim = ?
+       LIMIT 1`,
+      [maPhim]
+    );
 
     const phim = phimRows?.[0];
     if (!phim) return res.status(404).json({ message: "Không tìm thấy phim" });
@@ -715,6 +758,7 @@ app.get("/api/QuanLyRap/LayThongTinLichChieuPhim", async (req, res) => {
       daoDien: phim.daoDien,
       dienVien: phim.dienVien,
       maTheLoaiPhim: phim.maTheLoaiPhim,
+      tenTheLoai: phim.tenTheLoai || null,
       dinhDang: phim.dinhDang,
       heThongRapChieu,
     };
@@ -862,9 +906,14 @@ app.get("/api/QuanLyPhim/LayThongTinPhim", async (req, res) => {
     const maPhim = req.query.MaPhim || req.query.maPhim;
     if (!maPhim) return res.status(400).json({ message: "Thiếu MaPhim" });
 
-    const [phimRows] = await dbConn
-      .promise()
-      .query("SELECT * FROM phiminsert WHERE maPhim = ? LIMIT 1", [maPhim]);
+    const [phimRows] = await dbConn.promise().query(
+      `SELECT p.*, tl.tenTheLoai
+       FROM phiminsert p
+       LEFT JOIN theloaiphim tl ON p.maTheLoaiPhim = tl.id
+       WHERE p.maPhim = ?
+       LIMIT 1`,
+      [maPhim]
+    );
 
     const phim = phimRows?.[0];
     if (!phim) return res.status(404).json({ message: "Không tìm thấy phim" });
@@ -885,6 +934,7 @@ app.get("/api/QuanLyPhim/LayThongTinPhim", async (req, res) => {
       daoDien: phim.daoDien,
       dienVien: phim.dienVien,
       maTheLoaiPhim: phim.maTheLoaiPhim,
+      tenTheLoai: phim.tenTheLoai || null,
       dinhDang: phim.dinhDang,
     });
   } catch (err) {
@@ -1027,6 +1077,15 @@ app.get("/api/QuanLyDatVe/LayDanhSachPhongVe", function (req, res) {
     [req.query.MaLichChieu],
     async (error, results, fields) => {
       if (error) throw error;
+      const showtimeRaw = results?.[0]?.ngayChieuGioChieu;
+      const showtime = showtimeRaw ? new Date(showtimeRaw) : null;
+      if (showtime && !Number.isNaN(showtime.getTime()) && showtime.getTime() < Date.now()) {
+        return res.status(400).json({
+          message: "Lịch chiếu đã kết thúc, không thể đặt vé.",
+          expired: true,
+          ngayChieuGioChieu: showtimeRaw,
+        });
+      }
 
       const maRap = String(results?.[0]?.maRap ?? "");
       const basePrice = Number(results?.[0]?.giaVe ?? 0);
@@ -1059,7 +1118,7 @@ app.get("/api/QuanLyDatVe/LayDanhSachPhongVe", function (req, res) {
 
       // 2) Lấy danh sách ghế đã đặt của lịch chiếu
       let danhSachGhe = Array.apply(null, Array(DEFAULT_TOTAL)).map(
-        function () {},
+        function () { },
       );
       danhSachGhe = await new Promise((resolve, reject) => {
         dbConn.query(
@@ -1086,6 +1145,32 @@ app.get("/api/QuanLyDatVe/LayDanhSachPhongVe", function (req, res) {
           },
         );
       });
+
+      const clientId = String(req.query.clientId || "");
+      try {
+        await dbConn.promise().query("DELETE FROM ghegiu WHERE expiresAt <= NOW()");
+        const [holdRows] = await dbConn
+          .promise()
+          .query(
+            "SELECT tenGhe, clientId, expiresAt FROM ghegiu WHERE maLichChieu = ? AND expiresAt > NOW()",
+            [req.query.MaLichChieu]
+          );
+
+        for (const h of holdRows || []) {
+          const seatIndex = Number(h.tenGhe);
+          if (!Number.isFinite(seatIndex)) continue;
+          if (!danhSachGhe[seatIndex]) continue;
+          if (danhSachGhe[seatIndex].daDat === true) continue;
+
+          danhSachGhe[seatIndex] = {
+            ...danhSachGhe[seatIndex],
+            isHold: true,
+            holdExpiresAt: h.expiresAt,
+            holdBy: h.clientId,
+            taiKhoanNguoiDat: h.clientId,
+          };
+        }
+      } catch { }
 
       // 3) Fill ghế chưa đặt: dùng config nếu có, còn không thì logic cũ (Vip theo index)
       for (let i = 0; i < DEFAULT_TOTAL; i++) {
@@ -1129,8 +1214,109 @@ app.get("/api/QuanLyDatVe/LayDanhSachPhongVe", function (req, res) {
   );
 });
 
+app.post("/api/QuanLyDatVe/GiuGhe", async (req, res) => {
+  try {
+    const { maLichChieu, tenGhe, clientId, holdMinutes } = req.body;
+    const mlc = Number(maLichChieu);
+    const tg = Number(tenGhe);
+    const cid = String(clientId || "");
+    const minutes = Number(holdMinutes || 15);
+
+    if (!Number.isFinite(mlc) || !Number.isFinite(tg) || !cid) {
+      return res.status(400).json({ message: "Thiếu maLichChieu/tenGhe/clientId" });
+    }
+
+    await dbConn.promise().query("DELETE FROM ghegiu WHERE expiresAt <= NOW()");
+
+    const [[booked]] = await dbConn
+      .promise()
+      .query("SELECT COUNT(*) AS cnt FROM datve WHERE maLichChieu=? AND tenGhe=? LIMIT 1", [mlc, tg]);
+    if (Number(booked?.cnt || 0) > 0) {
+      return res.status(409).json({ message: "Ghế đã được đặt." });
+    }
+
+    const [rows] = await dbConn
+      .promise()
+      .query(
+        "SELECT clientId, expiresAt FROM ghegiu WHERE maLichChieu=? AND tenGhe=? AND expiresAt > NOW() LIMIT 1",
+        [mlc, tg]
+      );
+
+    const holdRow = rows?.[0];
+    if (holdRow && String(holdRow.clientId) !== cid) {
+      return res.status(409).json({ message: "Ghế đang được giữ bởi người khác." });
+    }
+
+    const expiresAt = new Date(Date.now() + minutes * 60 * 1000);
+
+    await dbConn
+      .promise()
+      .query(
+        "INSERT INTO ghegiu (maLichChieu, tenGhe, clientId, expiresAt) VALUES (?,?,?,?) ON DUPLICATE KEY UPDATE clientId=VALUES(clientId), expiresAt=VALUES(expiresAt)",
+        [mlc, tg, cid, expiresAt]
+      );
+
+    return res.json({ ok: true, expiresAt });
+  } catch (e) {
+    console.error("[GiuGhe] error:", e);
+    return res.status(500).json({ message: "Lỗi giữ ghế" });
+  }
+});
+
+app.post("/api/QuanLyDatVe/HuyGiuGhe", async (req, res) => {
+  try {
+    const { maLichChieu, tenGhe, clientId } = req.body;
+    const mlc = Number(maLichChieu);
+    const tg = Number(tenGhe);
+    const cid = String(clientId || "");
+
+    if (!Number.isFinite(mlc) || !Number.isFinite(tg) || !cid) {
+      return res.status(400).json({ message: "Thiếu maLichChieu/tenGhe/clientId" });
+    }
+
+    await dbConn.promise().query("DELETE FROM ghegiu WHERE expiresAt <= NOW()");
+    await dbConn
+      .promise()
+      .query("DELETE FROM ghegiu WHERE maLichChieu=? AND tenGhe=? AND clientId=?", [mlc, tg, cid]);
+
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("[HuyGiuGhe] error:", e);
+    return res.status(500).json({ message: "Lỗi hủy giữ ghế" });
+  }
+});
+
+app.post("/api/QuanLyDatVe/HuyGiuGheTatCa", async (req, res) => {
+  try {
+    const { maLichChieu, clientId } = req.body;
+    const mlc = Number(maLichChieu);
+    const cid = String(clientId || "");
+    if (!Number.isFinite(mlc) || !cid) return res.status(400).json({ message: "Thiếu maLichChieu/clientId" });
+
+    await dbConn.promise().query("DELETE FROM ghegiu WHERE expiresAt <= NOW()");
+    await dbConn.promise().query("DELETE FROM ghegiu WHERE maLichChieu=? AND clientId=?", [mlc, cid]);
+    return res.json({ ok: true });
+  } catch (e) {
+    console.error("[HuyGiuGheTatCa] error:", e);
+    return res.status(500).json({ message: "Lỗi hủy giữ ghế" });
+  }
+});
+
 app.post("/api/QuanLyDatVe/DatVe", async (req, res) => {
-  // Nếu có cấu hình ghế theo rạp (bảng cinema.ghe), chặn đặt các ghế bị khóa (isActive=0)
+  // ✅ Chặn đặt vé cho lịch chiếu đã qua
+  try {
+    const [stRows] = await dbConn.promise().query(
+      "SELECT ngayChieuGioChieu FROM lichchieuinsert WHERE maLichChieu = ? LIMIT 1",
+      [req.body.maLichChieu]
+    );
+    const stRaw = stRows?.[0]?.ngayChieuGioChieu;
+    const st = stRaw ? new Date(stRaw) : null;
+    if (st && !Number.isNaN(st.getTime()) && st.getTime() < Date.now()) {
+      return res.status(400).json({ message: "Lịch chiếu đã kết thúc, không thể đặt vé." });
+    }
+  } catch (e) {
+    console.log("[DatVe] showtime check error:", e?.message || e);
+  }
   try {
     const maLichChieu = req.body.maLichChieu;
     const seatIndexList = (req.body.danhSachVe || [])
@@ -1181,6 +1367,11 @@ app.post("/api/QuanLyDatVe/DatVe", async (req, res) => {
   var tenRap = "";
   var tenCumRap = "";
   var time = "";
+  const maVeList = [];
+  const isConfirm = Number(req.body.isConfirm) === 1 ? 1 : 0;
+  const emailInput = req.body.email || "";
+  const phoneInput = req.body.phone || "";
+  const amountInput = Number(req.body.amount || 0);
   for (const ve of req.body.danhSachVe) {
     listVe.push(ve);
     await new Promise((resolve, reject) => {
@@ -1291,7 +1482,15 @@ app.post("/api/QuanLyDatVe/DatVe", async (req, res) => {
     },
   );
 
-  return res.send("Success");
+  return res.json({
+    message: "Success",
+    maVeList,
+    ghe: (req.body.danhSachVe || []).map(v => v.tenDayDu),
+    email: emailInput,
+    phone: phoneInput,
+    tongTien: amountInput || (req.body.danhSachVe || []).reduce((s, v) => s + Number(v.giaVe || 0), 0),
+    daThanhToan: isConfirm === 1,
+  });
 });
 
 app.get("/api/QuanLyDatVe/LayLichChieu", async (req, res) => {
@@ -2093,7 +2292,7 @@ app.post(
     // cho phép gửi slug/id qua body hoặc query
     req.query.slug = req.query.slug || req.body?.slug;
     req.query.id = req.query.id || req.body?.id;
-    return app._router.handle(req, res, () => {}, "delete");
+    return app._router.handle(req, res, () => { }, "delete");
   },
 );
 
@@ -2410,6 +2609,69 @@ app.get(
     }
   },
 );
+
+// ======================= PAYOS =======================
+// Tạo link thanh toán PayOS
+app.post("/api/payos/create-payment-link", async (req, res) => {
+  try {
+    const {
+      amount,
+      description,
+      buyerName,
+      buyerEmail,
+      buyerPhone,
+      expiredAt, // optional: Unix timestamp (seconds). Nếu không truyền thì mặc định 15 phút.
+      extraData, // optional: bạn có thể gửi maLichChieu, taiKhoan... để lưu
+    } = req.body;
+
+    const totalAmount = Number(amount);
+    if (!totalAmount || totalAmount <= 0) {
+      return res.status(400).json({ message: "Số tiền không hợp lệ" });
+    }
+
+    // orderCode phải là số nguyên <= 2^31-1 (PayOS yêu cầu dạng number)
+    const orderCode = Math.floor(Date.now() / 1000);
+
+    const body = {
+      orderCode,
+      amount: totalAmount,
+      description: (description || "Thanh toan ve xem phim").slice(0, 25), // PayOS giới hạn độ dài
+      returnUrl: `${WEB_URL}/payos/return`,
+      cancelUrl: `${WEB_URL}/payos/cancel`,
+      buyerName,
+      buyerEmail,
+      buyerPhone,
+      // Link/QR chỉ hợp lệ trong 15 phút (payOS hỗ trợ expiredAt dạng Unix timestamp int32)
+      expiredAt:
+        Number.isFinite(Number(expiredAt)) && Number(expiredAt) > 0
+          ? Number(expiredAt)
+          : Math.floor(Date.now() / 1000) + 15 * 60,
+      // chữ ký sẽ do SDK xử lý
+    };
+
+    const paymentLinkRes = await payos.createPaymentLink(paymentData);
+
+    return res.send(paymentLink.checkoutUrl);
+  } catch (err) {
+    console.error("PAYOS create-payment-link error:", err);
+    return res.status(500).json({ message: "Lỗi tạo link PayOS" });
+  }
+});
+
+
+// Lấy thông tin thanh toán theo orderCode
+app.get("/api/payos/payment-info", async (req, res) => {
+  try {
+    const id = req.query.id; // orderCode
+    if (!id) return res.status(400).json({ message: "Thiếu id(orderCode)" });
+
+    const info = await payos.getPaymentLinkInformation(id);
+    return res.json(info);
+  } catch (err) {
+    console.error("PAYOS payment-info error:", err);
+    return res.status(500).json({ message: "Lỗi lấy thông tin PayOS" });
+  }
+});
 
 app.listen(PORT, () =>
   console.log(`✅ Server đang chạy tại http://localhost:${PORT}`),

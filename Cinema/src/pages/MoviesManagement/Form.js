@@ -20,7 +20,19 @@ export default function FormInput({ selectedPhim, onUpdate, onAddMovie }) {
     const [listTheater, setListTheater] = useState([]);
     const [roomData, setRoomData] = useState({
         maTheLoai: null,
-      });
+    });
+
+    // ✅ Khi chuyển qua phim khác để sửa, cập nhật lại preview ảnh + thể loại
+    useEffect(() => {
+        setSrcImage(selectedPhim?.hinhAnh || "");
+        setBase64Img(selectedPhim?.hinhAnh || "");
+        setRoomData({
+            maTheLoai:
+                selectedPhim?.maTheLoaiPhim !== undefined && selectedPhim?.maTheLoaiPhim !== null
+                    ? String(selectedPhim.maTheLoaiPhim)
+                    : "",
+        });
+    }, [selectedPhim?.maPhim]);
     useEffect(() => {
         theatersApi.getThongTinCuaTheLoaiPhim().then(response => {
             setListTheater(response.data)
@@ -64,7 +76,8 @@ export default function FormInput({ selectedPhim, onUpdate, onAddMovie }) {
         movieObj.hinhAnh = base64Img;
         
         if (selectedPhim.maPhim) {
-            movieObj.maTheLoaPhim = roomData.maTheLoai;
+            // ✅ giữ đúng field name backend cần
+            movieObj.maTheLoaiPhim = roomData.maTheLoai || selectedPhim.maTheLoaiPhim || null;
             onUpdate(movieObj, hinhAnh, fakeImage)
             return
         }
@@ -117,6 +130,7 @@ export default function FormInput({ selectedPhim, onUpdate, onAddMovie }) {
 
     return (
         <Formik
+            enableReinitialize
             initialValues={{
                 maPhim: selectedPhim.maPhim,
                 tenPhim: selectedPhim.tenPhim,
@@ -126,11 +140,12 @@ export default function FormInput({ selectedPhim, onUpdate, onAddMovie }) {
                 daoDien: selectedPhim.daoDien,
                 dienVien: selectedPhim.dienVien,
                 dinhDang: selectedPhim.dinhDang,
-                quocGiaSX: selectedPhim.quocGiaSX,
+                // Backend trả nhaSanXuat, form dùng quocGiaSX
+                quocGiaSX: selectedPhim.quocGiaSX || selectedPhim.nhaSanXuat || "",
                 moTa: selectedPhim.moTa,
                 maNhom: 'GP09',
                 ngayKhoiChieu: selectedPhim?.ngayKhoiChieu ? new Date(selectedPhim.ngayKhoiChieu) : new Date(),
-                danhGia: selectedPhim.danhGia,
+                danhGia: selectedPhim.danhGia ?? 10,
             }}
             validationSchema={movieSchema}
             onSubmit={handleSubmit}

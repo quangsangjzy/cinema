@@ -12,15 +12,12 @@ export default function FormInput({ selectedPhim, onUpdate, onAddMovie, listCine
     });
   
     const handleSubmit = (movieObj) => {
-      if (selectedPhim.tenTheLoai) {
-        // onUpdate(movieObj);
-        console.log("Update")
+      // ✅ Có id => update, không có => add
+      if (selectedPhim?.id) {
+        onUpdate({ ...movieObj, id: selectedPhim.id });
         return;
       }
-  
-      const newMovieObj = { ...movieObj };
-      console.log(newMovieObj);
-      onAddMovie(newMovieObj);
+      onAddMovie({ ...movieObj });
     };
   
   
@@ -28,8 +25,9 @@ export default function FormInput({ selectedPhim, onUpdate, onAddMovie, listCine
   
     return (
       <Formik
+        enableReinitialize
         initialValues={{
-          tenTheLoai: selectedPhim.tenTheLoai,
+          tenTheLoai: selectedPhim?.tenTheLoai || "",
         }}
         validationSchema={movieSchema}
         onSubmit={handleSubmit}

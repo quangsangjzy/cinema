@@ -28,6 +28,7 @@ import {
 import Action from "./Action";
 import ThumbnailYoutube from "./ThumbnailYoutube";
 import Form from "./Form";
+import moviesApi from "../../api/moviesApi";
 
 function CustomLoadingOverlay() {
     return (
@@ -170,9 +171,35 @@ export default function MoviesManagement() {
         dispatch(deleteMovie(deleteDialog.maPhim));
         closeDeleteDialog();
     };
-    const handleEdit = (phimItem) => {
-        selectedPhim.current = phimItem;
-        setOpenModal(true);
+    const handleEdit = async (phimItem) => {
+        try {
+            if (!phimItem?.maPhim) return;
+
+            // ✅ Lấy đầy đủ thông tin phim để prefill form (list chỉ có vài field)
+            const res = await moviesApi.getThongTinPhim(phimItem.maPhim);
+            const data = res?.data || {};
+
+            selectedPhim.current = {
+                ...phimItem,
+                ...data,
+                // Backend trả nhaSanXuat, form đang dùng quocGiaSX
+                quocGiaSX: data.quocGiaSX || data.nhaSanXuat || phimItem.quocGiaSX || "",
+                // đảm bảo luôn có maTheLoaiPhim để set select
+                maTheLoaiPhim:
+                    data.maTheLoaiPhim !== undefined
+                        ? data.maTheLoaiPhim
+                        : phimItem.maTheLoaiPhim,
+                // đảm bảo image có giá trị
+                hinhAnh: data.hinhAnh || phimItem.hinhAnh,
+            };
+
+            setOpenModal(true);
+        } catch (err) {
+            enqueueSnackbar(
+                err?.response?.data?.message || "Không lấy được thông tin phim để sửa",
+                { variant: "error" }
+            );
+        }
     };
 
     const onUpdate = (movieObj, hinhAnh, fakeImage) => {
@@ -204,9 +231,14 @@ export default function MoviesManagement() {
             trailer: "",
             hinhAnh: "",
             moTa: "",
-            maNhom: "",
+            maNhom: "GP09",
             ngayKhoiChieu: "",
             danhGia: 10,
+            daoDien: "",
+            dienVien: "",
+            dinhDang: "",
+            quocGiaSX: "",
+            maTheLoaiPhim: "",
         };
         selectedPhim.current = emtySelectedPhim;
         setOpenModal(true);

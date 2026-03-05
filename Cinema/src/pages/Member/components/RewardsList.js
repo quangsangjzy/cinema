@@ -17,7 +17,7 @@ export default function RewardsList({ points = 0, onRefresh = () => {} }) {
             <p>Giá: {r.points} điểm</p>
             <button
               onClick={() => {
-                alert(`Yêu cầu đổi "${r.title}" (demo). Nếu muốn thực hiện thực tế, gọi API đổi quà ở đây.`);
+                alert(`Yêu cầu đổi "${r.title}" (demo).`);
                 onRefresh();
               }}
             >

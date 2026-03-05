@@ -109,7 +109,8 @@ export default function Header() {
 
 
     const handleUser = () => {
-        history.push("/taikhoan");
+        const isAdmin = currentUser?.maLoaiNguoiDung === "QuanTri";
+        history.push(isAdmin ? "/admin/users" : "/taikhoan");
         setOpenDrawer(false);
     };
 

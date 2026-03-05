@@ -58,6 +58,79 @@ export default function PayMent() {
   } = useSelector((state) => state.BookTicketReducer);
 
   const dispatch = useDispatch();
+  // ===== PAYOS RETURN HANDLER (tự xác nhận sau khi PayOS redirect về) =====
+  const [payosStatusMsg, setPayosStatusMsg] = useState("");
+  const [payosVerifying, setPayosVerifying] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const payosFlag = params.get("payos");
+    const orderCode = params.get("orderCode");
+    const cancel = params.get("cancel");
+
+    // Chỉ xử lý khi PayOS redirect về đúng URL có payos=1&orderCode=...
+    if (payosFlag !== "1" || !orderCode) return;
+
+    // Xóa query để tránh chạy lại khi refresh
+    const clearQuery = () => {
+      try {
+        history.replace(location.pathname);
+      } catch { }
+    };
+
+    if (cancel === "1") {
+      setPayosStatusMsg("Bạn đã hủy thanh toán PayOS.");
+      clearQuery();
+      return;
+    }
+
+    setPayosVerifying(true);
+
+    usersApi
+      .getPayosPaymentInfo(orderCode)
+      .then((res) => {
+        const info = res?.data || {};
+        const status = info.status;
+
+        if (status === "PAID") {
+          const raw = localStorage.getItem(`PAYOS_BOOK_${orderCode}`);
+          if (!raw) {
+            setPayosStatusMsg(
+              "Thanh toán thành công nhưng không tìm thấy dữ liệu đặt vé. Vui lòng thử lại."
+            );
+            return;
+          }
+          const payload = JSON.parse(raw);
+
+          setPayosStatusMsg("Thanh toán thành công ✅ Đang tạo vé...");
+
+          dispatch(
+            BookTicket({
+              maLichChieu: payload.maLichChieu,
+              danhSachVe: payload.danhSachVe,
+              taiKhoanNguoiDung: payload.taiKhoanNguoiDung,
+              // Backend đang chia /100 khi ghi thongke, nên FE gửi *100
+              amount: Number(payload.amount || 0) * 100,
+              tenPhim: payload.tenPhim,
+            })
+          );
+
+          localStorage.removeItem(`PAYOS_BOOK_${orderCode}`);
+          clearQuery();
+        } else if (status === "CANCELLED") {
+          setPayosStatusMsg("Thanh toán đã bị hủy.");
+          clearQuery();
+        } else {
+          setPayosStatusMsg("Thanh toán chưa hoàn tất. Vui lòng thử lại.");
+          clearQuery();
+        }
+      })
+      .catch(() => {
+        setPayosStatusMsg("Không xác nhận được thanh toán PayOS.");
+        clearQuery();
+      })
+      .finally(() => setPayosVerifying(false));
+  }, [location.search, location.pathname, history, dispatch]);
   const emailRef = useRef();
   const phoneRef = useRef();
   let variClear = useRef("");
@@ -65,8 +138,8 @@ export default function PayMent() {
   const [dataFocus, setDataFocus] = useState({ phone: false, email: false });
   const [dataSubmit, setdataSubmit] = useState({
     values: {
-      email: email,
-      phone: phone,
+      email: '',
+      phone: '',
       paymentMethod: paymentMethod,
     },
     errors: {
@@ -76,7 +149,7 @@ export default function PayMent() {
   });
 
   // ===== DEMO PAYMENT =====
-  const IS_DEMO_PAYMENT = true;
+  const IS_DEMO_PAYMENT = false; // ✅ dùng PayOS thay cho demo
   const [demoOpen, setDemoOpen] = useState(false);
   const [demoLocalError, setDemoLocalError] = useState("");
 
@@ -153,7 +226,7 @@ export default function PayMent() {
   };
 
   useEffect(() => {
-    clearTimeout(variClear);
+    clearTimeout(variClear.current);
     variClear.current = setTimeout(() => {
       dispatch({
         type: SET_DATA_PAYMENT,
@@ -181,36 +254,51 @@ export default function PayMent() {
     return () => clearTimeout(variClear.current);
   }, [dataSubmit, isSelectedSeat]);
 
-  useEffect(() => {
-    if (!emailRef.current || !phoneRef.current) return;
-
-    let emailErrors = makeObjError(emailRef.current.name, email, dataSubmit);
-    let phoneErrors = makeObjError(phoneRef.current.name, phone, dataSubmit);
-
-    setdataSubmit((dataSubmit) => ({
-      ...dataSubmit,
-      values: {
-        email: email,
-        phone: phone,
-        paymentMethod: paymentMethod,
-      },
-      errors: { email: emailErrors.email, phone: phoneErrors.phone },
-    }));
-  }, [listSeat]);
-
   const handleBookTicket = () => {
-    if (IS_DEMO_PAYMENT) {
-      openDemo();
+    // ✅ Thanh toán thật bằng PayOS (thay cho DEMO)
+    if (!danhSachVe || danhSachVe.length === 0) {
+      alert("Bạn chưa chọn ghế.");
+      return;
+    }
+    if (!dataSubmit.values.email || !dataSubmit.values.phone) {
+      alert("Vui lòng nhập Email và Phone.");
       return;
     }
 
-    // Cổng thật (nếu bật lại)
     usersApi
       .creatPaymentUrl(amount, maLichChieu, danhSachVe, taiKhoanNguoiDung)
       .then((result) => {
-        window.location.href = result.data;
+        const data = result?.data;
+
+        // Backend có thể trả string (cũ) hoặc object (mới)
+        const checkoutUrl =
+          typeof data === "string" ? data : data?.checkoutUrl || data?.checkoutURL;
+        const orderCode = typeof data === "string" ? null : data?.orderCode;
+
+        if (!checkoutUrl) {
+          console.error("PayOS response:", data);
+          alert("Không nhận được checkoutUrl từ PayOS.");
+          return;
+        }
+
+        // Lưu payload để khi PayOS redirect về thì tự đặt vé
+        if (orderCode) {
+          const payload = {
+            maLichChieu,
+            danhSachVe,
+            taiKhoanNguoiDung,
+            amount: Number(amount || 0),
+            tenPhim: thongTinPhim?.tenPhim || "",
+          };
+          localStorage.setItem(`PAYOS_BOOK_${orderCode}`, JSON.stringify(payload));
+        }
+
+        window.location.href = checkoutUrl;
       })
-      .catch(() => {});
+      .catch((err) => {
+        console.error(err);
+        alert("Không tạo được link thanh toán PayOS.");
+      });
   };
 
   const onFocus = (e) => setDataFocus({ ...dataFocus, [e.target.name]: true });
@@ -224,6 +312,12 @@ export default function PayMent() {
             <p className={`${classes.amount} ${classes.payMentItem}`}>
               {`${Number(amount || 0).toLocaleString("vi-VI")} đ`}
             </p>
+            {payosStatusMsg && (
+              <p style={{ marginTop: 8, color: payosVerifying ? "#ffb74d" : "#81c784" }}>
+                {payosStatusMsg}
+              </p>
+            )}
+
           </div>
 
           <div className="col-md-12">
@@ -271,7 +365,7 @@ export default function PayMent() {
                 ref={phoneRef}
                 onFocus={onFocus}
                 onBlur={onBlur}
-                value={dataSubmit.values.phone || currentUser?.soDt || ""}
+                value={dataSubmit.values.phone || ""}
                 className={classes.fillInPhone}
                 onChange={onChange}
                 autoComplete="off"

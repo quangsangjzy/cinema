@@ -38,6 +38,9 @@ import AddNews from "./pages/NewsManagement/AddNews";
 import TinTucDetails from "./pages/Newspage/Details";
 import EditNews from "./pages/NewsManagement/EditNews";
 import ChairManagement from "./pages/ChairManagement";
+import PayOSReturn from "./pages/PayOSReturn";
+import PayOSCancel from "./pages/PayOSCancel";
+import UserRoute from "./guards/UserRoute"
 
 
 function App() {
@@ -52,15 +55,13 @@ function App() {
                             <Route exact path="/" component={Homepage} />
                             <Route exact path="/detail/:maPhim" component={MovieDetail} />
                             <Route exact path="/lichchieu" component={Showtimes} />
-                            <Route exact path="/thanhvien" component={Member} />
+                            <UserRoute exact path="/thanhvien" component={Member} />
                             <Route exact path="/tintuc/:slug" component={TinTucDetails} />
                             <Route exact path="/tintuc" component={Newspage} />
                             <Route exact path="/vechungtoi" component={Aboutus} />
-                            <UserProfileRoute
-                                exact
-                                path="/taikhoan"
-                                component={UserProfile}
-                            />
+                            <UserRoute exact path="/taikhoan" component={UserProfile} />
+                            <Route path="/payos/return" component={PayOSReturn} />
+                            <Route path="/payos/cancel" component={PayOSCancel} />
                         </MainLayout>
                     </Route>
 

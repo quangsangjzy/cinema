@@ -328,6 +328,7 @@ return (
             </DialogTitle>
             <DialogContent dividers>
                 <Form
+                    key={selectedPhim.current?.id || "new"}
                     selectedPhim={selectedPhim.current}
                     onUpdate={onUpdate}
                     onAddMovie={onAddMovie}

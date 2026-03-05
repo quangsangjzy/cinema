@@ -158,11 +158,18 @@ export default function MoviesManagement() {
             enqueueSnackbar(errorAddUploadMovie, { variant: "error" });
         }
     }, [successAddUploadMovie, errorAddUploadMovie]);
-    const handleDeleteOne = (maCumRap) => {
-        console.log(maCumRap);
-        if (!loadingDeleteMovie) {
-            theatersApi.xoaCumRap({maCumRap : maCumRap});
+    const handleDeleteOne = async (maCumRap) => {
+        if (loadingDeleteMovie) return;
+
+        const ok = window.confirm("Bạn chắc chắn muốn xóa cụm rạp này?");
+        if (!ok) return;
+
+        try {
+            await theatersApi.xoaCumRap({ maCumRap });
             window.location.reload();
+        } catch (e) {
+            console.log("XoaCumRap error:", e);
+            enqueueSnackbar("Xóa cụm rạp thất bại", { variant: "error" });
         }
     };
     const handleEdit = (phimItem) => {

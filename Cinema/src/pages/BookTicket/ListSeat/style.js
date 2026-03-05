@@ -173,7 +173,16 @@ const useStyles = makeStyles({
     width: '100%',
     background: "#000",
     opacity: 0.7
-  }
+  },
+  posiHold: {
+    position: "absolute",
+    top: "35%",
+    left: "50%",
+    transform: "translate(-50%, -50%)",
+    fontSize: 14,
+    color: "#fff",
+    zIndex: 3,
+  },
 
 })
 export default useStyles

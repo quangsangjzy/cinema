@@ -1,7 +1,8 @@
 import axiosClient from "./axiosClient";
 const BookTicketApi = {
-    getDanhSachPhongVe: (maLichChieu) => {
-        const path = `/QuanLyDatVe/LayDanhSachPhongVe?MaLichChieu=${maLichChieu}`;
+    getDanhSachPhongVe: (maLichChieu, clientId = "") => {
+        const cid = clientId ? `&clientId=${encodeURIComponent(clientId)}` : "";
+        const path = `/QuanLyDatVe/LayDanhSachPhongVe?MaLichChieu=${maLichChieu}${cid}`;
         return axiosClient.get(path);
     },
 
@@ -23,6 +24,21 @@ const BookTicketApi = {
         const path = `/QuanLyDatVe/SuaLichChieu?MaLichChieu=${maLichChieu}`;
         return axiosClient.put(path, {time, gia});
     },
+
+giuGhe: (data) => {
+    const path = `/QuanLyDatVe/GiuGhe`;
+    return axiosClient.post(path, data);
+},
+
+huyGiuGhe: (data) => {
+    const path = `/QuanLyDatVe/HuyGiuGhe`;
+    return axiosClient.post(path, data);
+},
+
+huyGiuGheTatCa: (data) => {
+    const path = `/QuanLyDatVe/HuyGiuGheTatCa`;
+    return axiosClient.post(path, data);
+},
 };
 
 export default BookTicketApi;

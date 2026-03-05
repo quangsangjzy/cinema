@@ -68,9 +68,12 @@ export default function MovieListNowShowing() {
               <p className="movie-date">{movie.ngayKhoiChieu?.slice(0, 10)}</p>
               <button
                 className="movie-btn"
-                onClick={() => history.push(`/detail/${movie.maPhim}`)}
+                onClick={() =>
+                  // Phim sắp chiếu: chỉ cho xem thông tin, không mua vé
+                  history.push(`/detail/${movie.maPhim}`, { comingMovie: true })
+                }
               >
-                Mua vé
+                 Chi tiết phim
               </button>
             </div>
           </div>

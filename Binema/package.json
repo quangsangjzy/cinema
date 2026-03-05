@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "@payos/node": "^1.0.0",
+    "@payos/node": "^1.0.10",
     "await": "^0.2.6",
     "body-parser": "^1.20.0",
     "cloudinary": "^1.41.3",

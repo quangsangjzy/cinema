@@ -416,6 +416,12 @@ export default function UsersManagement() {
         if (loadingDelete) {
             return;
         }
+
+        const ok = window.confirm(
+            `Bạn chắc chắn muốn xóa tài khoản: ${taiKhoan} ?`,
+        );
+        if (!ok) return;
+
         let flag = false;
         usersApi.getDanhSachVeDaDat(taiKhoan).then((result) => {
             setData(result.data);
@@ -445,6 +451,18 @@ export default function UsersManagement() {
             }));
             return;
         }
+
+        const total = selectionModel?.length || 0;
+        if (!total) {
+            alert("Vui lòng chọn ít nhất 1 tài khoản để xóa");
+            return;
+        }
+
+        const ok = window.confirm(
+            `Bạn chắc chắn muốn xóa ${total} tài khoản đã chọn?`,
+        );
+        if (!ok) return;
+
         setUserListDelete((data) => ({
             ...data,
             triggerDelete: nanoid(6),

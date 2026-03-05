@@ -1,56 +1,52 @@
 import BookTicketApi from '../../api/bookingApi';
 import {
-    BOOK_TICKET_REQUEST, BOOK_TICKET_SUCCESS, BOOK_TICKET_FAIL, GET_LISTSEAT_REQUEST, GET_LISTSEAT_SUCCESS, GET_LISTSEAT_FAIL,
+    BOOK_TICKET_REQUEST, BOOK_TICKET_SUCCESS, BOOK_TICKET_FAIL, GET_LISTSEAT_REQUEST, GET_LISTSEAT_SILENT_REQUEST, GET_LISTSEAT_SUCCESS, GET_LISTSEAT_FAIL,
     CREATE_SHOWTIME_REQUEST, CREATE_SHOWTIME_SUCCESS, CREATE_SHOWTIME_FAIL, RESET_CREATE_SHOWTIME,
 } from "../constants/BookTicket";
-export const getListSeat = (maLichChieu) => {
+export const getListSeat = (maLichChieu, silent = false) => {
     return (dispatch) => {
         dispatch({
-            type: GET_LISTSEAT_REQUEST
-        })
+            type: silent ? GET_LISTSEAT_SILENT_REQUEST : GET_LISTSEAT_REQUEST,
+        });
+
         BookTicketApi.getDanhSachPhongVe(maLichChieu)
-            .then(result => {
+            .then((result) => {
                 dispatch({
                     type: GET_LISTSEAT_SUCCESS,
-                    payload: { data: result.data }
-                })
+                    payload: { data: result.data },
+                });
             })
-            .catch(
-                error => {
-                    dispatch({
-                        type: GET_LISTSEAT_FAIL,
-                        payload: { error: error.response?.data ? error.response.data : error.message, }
-                    })
-                }
-            )
-    }
-}
+            .catch((error) => {
+                dispatch({
+                    type: GET_LISTSEAT_FAIL,
+                    payload: { error: error.response?.data ? error.response.data : error.message },
+                });
+            });
+    };
+};
 
 export const BookTicket = (data) => {
     return (dispatch) => {
-        dispatch({
-            type: BOOK_TICKET_REQUEST
-        })
+        dispatch({ type: BOOK_TICKET_REQUEST });
+
         BookTicketApi.postDatVe(data)
-            .then(result => {
+            .then((result) => {
                 dispatch({
                     type: BOOK_TICKET_SUCCESS,
-                    payload: {
-                        data: result.data,
-                    }
-                })
-            })
-            .catch(
-                error => {
-                    dispatch({
-                        type: BOOK_TICKET_FAIL,
-                        payload: { error: error.response?.data ? error.response.data : error.message, }
-                    })
+                    payload: { data: result.data },
+                });
 
-                }
-            )
-    }
-}
+                // ✅ reload ghế để ghế vừa mua hiện daDat luôn
+                dispatch(getListSeat(data.maLichChieu, true));
+            })
+            .catch((error) => {
+                dispatch({
+                    type: BOOK_TICKET_FAIL,
+                    payload: { error: error.response?.data ? error.response.data : error.message },
+                });
+            });
+    };
+};
 
 export const createShowtime = (data) => {
     return (dispatch) => {

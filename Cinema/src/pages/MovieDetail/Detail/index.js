@@ -4,6 +4,7 @@ import { useLocation } from "react-router-dom";
 import "./style.css";
 import useStyles from "./style";
 import formatDate from "../../../utilities/formatDate";
+import getVideoId from "../../../utilities/getVideoIdFromUrlyoutube";
 import Tap from "../Tap";
 import { useDispatch } from "react-redux";
 import { OPEN_MODAL } from "../../../reducers/constants/ModalTrailer";
@@ -15,6 +16,17 @@ export default function Desktop({ movieDetailShowtimes: data, isMobile }) {
   const [imagePage404, setImagePage404] = useState(false);
   const location = useLocation();
   const dispatch = useDispatch();
+
+  // ✅ Phim sắp chiếu: không cho mua vé / không hiển thị lịch chiếu
+  // - Ưu tiên state comingMovie khi điều hướng từ danh sách "Phim sắp chiếu"
+  // - Fallback: so sánh ngày khởi chiếu với ngày hiện tại
+  const isComingMovie = Boolean(location.state?.comingMovie) ||
+    (data?.ngayKhoiChieu ? new Date(data.ngayKhoiChieu) > new Date() : false);
+
+  const trailerId = data?.trailer ? getVideoId(data.trailer) : "";
+  const trailerEmbedUrl = trailerId
+    ? `https://www.youtube.com/embed/${trailerId}`
+    : "";
 
   const handleBtnMuaVe = () => {
     setOnClickBtnMuave(Date.now()); // scroll xuống lịch chiếu
@@ -67,7 +79,7 @@ export default function Desktop({ movieDetailShowtimes: data, isMobile }) {
               </div>
               <div className="movieDetailRow">
                 <div className="movieDetailLabel">Thể loại</div>
-                <div className="movieDetailValue">{data?.maTheLoaiPhim || "—"}</div>
+                <div className="movieDetailValue">{data?.tenTheLoai || "—"}</div>
               </div>
               <div className="movieDetailRow">
                 <div className="movieDetailLabel">Định dạng</div>
@@ -83,33 +95,55 @@ export default function Desktop({ movieDetailShowtimes: data, isMobile }) {
               </div>
             </div>
 
-            <div className="movieDetailActions">
-              <button
-                className={classes.btnMuaVe}
-                onClick={handleBtnMuaVe}
-                disabled={Boolean(location.state?.comingMovie)}
-                title={location.state?.comingMovie ? "Phim sắp chiếu" : "Xem lịch chiếu"}
-              >
-                {location.state?.comingMovie ? "Thông tin phim" : "Mua vé"}
-              </button>
+            {/* Phim sắp chiếu: chỉ xem thông tin, ẩn các nút mua vé / xem demo */}
+            {!isComingMovie && (
+              <div className="movieDetailActions">
+                <button className={classes.btnMuaVe} onClick={handleBtnMuaVe}>
+                  Mua vé
+                </button>
 
-              <button className={classes.btnMuaVe} onClick={openModal}>
-                {location.state?.comingMovie ? "Trailer" : "Xem demo"}
-              </button>
-            </div>
+                <button className={classes.btnMuaVe} onClick={openModal}>
+                  Xem demo
+                </button>
+              </div>
+            )}
           </div>
         </div>
       </div>
 
-      <div className="movieDetailSchedule">
-        <Tap
-          data={data}
-          maPhim={maPhim}
-          onClickBtnMuave={onClickBtnMuave}
-          onIncreaseQuantityComment={() => {}}
-          isMobile={isMobile}
-        />
-      </div>
+      {/* Phim sắp chiếu: không hiển thị lịch chiếu / tab */}
+      {!isComingMovie && (
+        <div className="movieDetailSchedule">
+          <Tap
+            data={data}
+            maPhim={maPhim}
+            onClickBtnMuave={onClickBtnMuave}
+            onIncreaseQuantityComment={() => {}}
+            isMobile={isMobile}
+          />
+        </div>
+      )}
+
+      {/* Phim sắp chiếu: hiển thị trailer để bớt trống trải */}
+      {isComingMovie && (
+        <div className="movieDetailTrailer">
+          <h3 className="movieDetailTrailerTitle">Trailer</h3>
+          {trailerEmbedUrl ? (
+            <div className="movieDetailTrailerFrameWrap">
+              <iframe
+                title="trailer"
+                src={trailerEmbedUrl}
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          ) : (
+            <div className="movieDetailTrailerEmpty">
+              Trailer đang được cập nhật.
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

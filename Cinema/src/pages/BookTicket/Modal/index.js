@@ -67,7 +67,7 @@ export default function Modal() {
           <div className={classes.padding}>
             <p>
               Đã hết thời gian giữ ghế. Vui lòng thực hiện đơn hàng trong thời
-              hạn 5 phút.
+              hạn 15 phút.
               <span className={classes.txtClick} onClick={handleTimeOut}>
                 Đặt vé lại
               </span>

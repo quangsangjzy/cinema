@@ -1,6 +1,8 @@
 import {
-  BOOK_TICKET_REQUEST, BOOK_TICKET_SUCCESS, BOOK_TICKET_FAIL, GET_LISTSEAT_REQUEST,
-  GET_LISTSEAT_SUCCESS, GET_LISTSEAT_FAIL, CHANGE_LISTSEAT, RESET_DATA_BookTicket, SET_DATA_PAYMENT,
+  BOOK_TICKET_REQUEST, BOOK_TICKET_SUCCESS, BOOK_TICKET_FAIL,
+  GET_LISTSEAT_REQUEST, GET_LISTSEAT_SILENT_REQUEST,
+  GET_LISTSEAT_SUCCESS, GET_LISTSEAT_FAIL,
+  CHANGE_LISTSEAT, RESET_DATA_BookTicket, SET_DATA_PAYMENT,
   SET_READY_PAYMENT, TIMEOUT, SET_ISMOBILE, SET_STEP, INIT_DATA, RESET_ALERT_OVER10, SET_ALERT_OVER10,
   CREATE_SHOWTIME_REQUEST, CREATE_SHOWTIME_SUCCESS, CREATE_SHOWTIME_FAIL,
   RESET_CREATE_SHOWTIME,
@@ -55,6 +57,12 @@ const BookTicketReducer = (state = initialState, action) => {
         errorGetListSeatMessage: null,
       }
     }
+    case GET_LISTSEAT_SILENT_REQUEST: {
+      return {
+        ...state,
+        errorGetListSeatMessage: null,
+      };
+    }
     case GET_LISTSEAT_SUCCESS: {
       return {
         ...state,
@@ -67,7 +75,9 @@ const BookTicketReducer = (state = initialState, action) => {
         ...state,
         errorGetListSeatMessage: action.payload.error,
         loadingGetListSeat: false,
-      }
+        danhSachPhongVe: { thongTinPhim: {}, danhSachGhe: [] },
+        listSeat: [],
+      };
     }
     case INIT_DATA: {
       return {
@@ -95,6 +105,8 @@ const BookTicketReducer = (state = initialState, action) => {
       return {
         ...state,
         danhSachPhongVe: {},
+        email: '',
+        phone: '',
         paymentMethod: '',
         isReadyPayment: false,
         isSelectedSeat: false,

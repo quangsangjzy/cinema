@@ -406,6 +406,11 @@ export default function MoviesManagement() {
     };
 
     const handleDeleteOne = (maLichChieu) => {
+        const ok = window.confirm(
+            `Bạn chắc chắn muốn xóa lịch chiếu mã ${maLichChieu} ?`,
+        );
+        if (!ok) return;
+
         dispatch(deleteLichChieu(maLichChieu));
     };
 

@@ -3,6 +3,8 @@ import React, { useRef, useEffect, useState } from "react";
 import SeatIcon from "@material-ui/icons/CallToActionRounded";
 import { useSelector, useDispatch } from "react-redux";
 import Countdown from "../Countdown";
+import BookTicketApi from "../../../api/bookingApi";
+import { getListSeat } from "../../../reducers/actions/BookTicket";
 
 import useStyles from "./style";
 import { colorTheater, logoTheater } from "../../../constants/theaterData";
@@ -22,6 +24,7 @@ export default function ListSeat() {
         listSeat,
         danhSachPhongVe: { thongTinPhim },
     } = useSelector((state) => state.BookTicketReducer);
+    const { currentUser } = useSelector((state) => state.authReducer);
     const domToSeatElement = useRef(null);
     const [widthSeat, setWidthSeat] = useState(0);
     const classes = useStyles({
@@ -32,7 +35,19 @@ export default function ListSeat() {
     });
     const dispatch = useDispatch();
 
+    const clientId = React.useMemo(() => {
+        if (currentUser?.taiKhoan) return String(currentUser.taiKhoan);
+        const key = "BOOK_CLIENT_ID";
+        let cid = localStorage.getItem(key);
+        if (!cid) {
+            cid = "guest-" + Math.random().toString(36).slice(2) + Date.now();
+            localStorage.setItem(key, cid);
+        }
+        return cid;
+    }, [currentUser]);
+
     const [topping, setTopping] = useState(0);
+    const [holdEndTime, setHoldEndTime] = useState(null);
 
     const handleChange = (event) => {
         setTopping(event.target.value);
@@ -45,14 +60,64 @@ export default function ListSeat() {
     useEffect(() => {
         handleResize();
     }, [listSeat]);
+
+    useEffect(() => {
+        const selectedCount = (listSeat || []).filter((s) => s.selected).length;
+
+        // ✅ chọn ghế lần đầu -> bắt đầu 15 phút
+        if (selectedCount > 0 && !holdEndTime) {
+            setHoldEndTime(Date.now() + 15 * 60 * 1000);
+        }
+
+        // ✅ bỏ chọn hết ghế -> reset timer
+        if (selectedCount === 0 && holdEndTime) {
+            setHoldEndTime(null);
+        }
+    }, [listSeat, holdEndTime]);
+// ✅ Polling để cập nhật ghế giữ bởi người khác (gần realtime)
+useEffect(() => {
+    const mlc = thongTinPhim?.maLichChieu;
+    if (!mlc) return;
+    const timer = setInterval(() => {
+        dispatch(getListSeat(mlc, clientId, true));
+    }, 5000);
+    return () => clearInterval(timer);
+}, [thongTinPhim?.maLichChieu, clientId, dispatch]);
+
     const handleResize = () => {
         setWidthSeat(domToSeatElement?.current?.offsetWidth);
     };
 
-    const handleSelectedSeat = (seatSelected) => {
+    const handleSelectedSeat = async (seatSelected) => {
         if (seatSelected.daDat || Number(seatSelected.isActive) !== 1) {
             return;
         }
+// ✅ Ghế đang được giữ bởi người khác thì không cho chọn
+if (seatSelected.isHold && seatSelected.taiKhoanNguoiDat && String(seatSelected.taiKhoanNguoiDat) !== String(clientId)) {
+    alert("Ghế đang được giữ bởi người khác, vui lòng chọn ghế khác.");
+    return;
+}
+
+const mlc = thongTinPhim?.maLichChieu;
+const willSelect = !seatSelected.selected;
+
+// ✅ Nếu đang chọn ghế -> gọi API giữ ghế trước
+if (willSelect) {
+    try {
+        await BookTicketApi.giuGhe({ maLichChieu: mlc, tenGhe: seatSelected.maGhe, clientId, holdMinutes: 15 });
+    } catch (e) {
+        alert(e?.response?.data?.message || "Không giữ được ghế, vui lòng thử lại.");
+        // refresh lại danh sách ghế
+        if (mlc) dispatch(getListSeat(mlc, clientId));
+        return;
+    }
+} else {
+    // ✅ Bỏ chọn ghế -> hủy giữ ghế
+    try {
+        await BookTicketApi.huyGiuGhe({ maLichChieu: mlc, tenGhe: seatSelected.maGhe, clientId });
+    } catch {}
+}
+
         let newListSeat = listSeat.map((seat) => {
             if (seatSelected.maGhe === seat.maGhe) {
                 return { ...seat, selected: !seat.selected };
@@ -124,14 +189,14 @@ export default function ListSeat() {
     const ngayChieu = thongTinPhim?.gioChieu;
     console.log(ngayChieu)
     let thu = '';
-    
+
     if (ngayChieu) {
-      const parsedDate = parse(ngayChieu, 'dd/MM/yyyy HH:mm:ss', new Date());
-      console.log(parsedDate)
-    
-      if (isValid(parsedDate)) {
-        thu = format(parsedDate, 'EEEE', { locale: vi });
-      }
+        const parsedDate = parse(ngayChieu, 'dd/MM/yyyy HH:mm:ss', new Date());
+        console.log(parsedDate)
+
+        if (isValid(parsedDate)) {
+            thu = format(parsedDate, 'EEEE', { locale: vi });
+        }
     }
 
 
@@ -152,7 +217,7 @@ export default function ListSeat() {
                 </div>
                 <div className={classes.countDown}>
                     <p className={classes.timeTitle}>Thời gian giữ ghế</p>
-                    <Countdown />
+                    <Countdown date={holdEndTime} isActive={!!holdEndTime} />
                 </div>
             </div>
 
